@@ -1,3 +1,5 @@
+.minecraft/*
+
 *.bak
 *.json
 *.log
