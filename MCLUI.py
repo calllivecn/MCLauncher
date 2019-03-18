@@ -4,7 +4,8 @@
 # author calllivecn <c-all@qq.com>
 
 
-
+import os
+from os import path
 import tkinter as tk
 
 def get_win_location(win):#,H=200, W=400):
@@ -36,7 +37,12 @@ def getversion(listbox,window):
     
     window.destroy()
 
-    
+
+def getversions(PATH="."):
+    global win
+    if path.exists(path.join(PATH)):
+        return os.listdir(PATH)
+
 def select_version():
     global win
     select_win = tk.Toplevel(win)
@@ -45,7 +51,9 @@ def select_version():
 
     select_win.title("请选择版本")
 
-    versions=['1.13.1',"1.13","1.10","1.10.2","1.12.2","1.11.2"]
+    #versions=['1.13.1',"1.13","1.10","1.10.2","1.12.2","1.11.2"]
+
+    versions = getversions()
 
     versions.sort(reverse=True)
 
