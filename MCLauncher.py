@@ -9,15 +9,26 @@ MC_CONFIG = 'MCLauncher.json'
 import os
 import sys
 import json
+from urllib import urlopen
 from urllib.parse import urlsplit
-from hashlib import md5
+from hashlib import md5, sha1
 from argparse import ArgumentParser
 from zipfile import ZipFile
-from subprocess import check_call,call
+from subprocess import check_call, call
 from platform import system
 
 #from pprint import pprint
 
+#########################
+#
+#
+# URL resources define
+#
+#
+#########################
+
+URL_VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
+URL_RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
 
 
 #########################
@@ -28,7 +39,7 @@ from platform import system
 #
 #########################
 
-OS_TYPE=system().lower()
+OS_TYPE = system().lower()
 
 ossep = os.sep
 mkdir = os.mkdir
@@ -99,12 +110,12 @@ class MCL:
 
         self.get_jvm_args()
 
-        jvm_other_args=" -Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M "
+        jvm_other_args=" "
 
         # 从${version}.json里解析
         self.get_minecraft_args()
 
-        self.launcher_cmd = "java" + jvm_other_args + self.Djava_library_path + self.jvm_args + ":" + self.mc_jar + " " + self.mainclass + " " + self.minecraft_args
+        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.mc_jar + " " + self.mainclass + " " + self.minecraft_args
         #self.launcher_cmd = ["java "] + list(self.jvm_args) + list(self.classpath + ":") + list(self.mc_jar) + list(self.mainclass) + list(self.minecraft_args)
         #print(self.launcher_cmd);exit(0)
 
@@ -125,6 +136,7 @@ class MCL:
             pass
         else:
             print('游戏目录不存在:',self.gameDir)
+            sys.exit(1)
         
     def __get_game_version(self):
         versions_path = self.gameDir + ossep + 'versions'
@@ -133,15 +145,22 @@ class MCL:
                 self.game_version = version # 差多个版本的筛选情况
             else:
                 print('没有找到versions目录')
-                exit(1)
+                sys.exit(1)
 
     def __get_Djava_library_path(self):
-        if not self.Djava_library_path:
+        if self.Djava_library_path == "":
             self.Djava_library_path = self.gameDir + ossep + 'versions' + ossep + self.game_version + ossep + self.game_version + '-natives'
-        print("Djava_libaray_path: ", self.Djava_library_path,file=sys.stderr)
+        print("Djava_libaray_path: ", self.Djava_library_path, file=sys.stderr)
     
     def __get_assetsDir(self):
         self.assetsDir = self.gameDir + ossep + 'assets'
+
+    def __unpack_dll(self, realpath, target):
+
+        with ZipFile(realpath) as zf:
+            for name in zf.namelist():
+                if name.endswith(".so") or name.endswith(".SO") or name.endswith(".dll") or name.endswith(".DLL"):
+                    zf.extract(name, target)
 
     def get_classpath(self):
     
@@ -150,7 +169,7 @@ class MCL:
             size = tmp.get('size')
             sha1 = tmp.get('sha1')
             tmp2 = urlsplit(url).path
-            tmp2 = tmp2.replace('/',ossep)
+            tmp2 = tmp2.replace('/', ossep)
             return tmp2
     
         
@@ -161,72 +180,105 @@ class MCL:
             
             # 判断 rules 
             rules = class_jar_info.get('rules')
+
             if rules is not None:
-                rules = rules[0]
+                for rule in rules:
+                    
+                    action = rule.get('action')
+                    if action == 'allow':
 
-                if rules.get('action') == 'allow':
+                        os_ = rule.get('os')
+                        if os_ is None:
+                            allow = True
+                        else:
+                            ostype = os_.get('name')
+                            if ostype == OS_TYPE:
+                                allow = True
+                            else:
+                                allow = False
 
-                    ostype = rules.get('os')
+                    elif action == 'disallow':
+                        os_ = rule.get('os')
+                        if os_ is None:
+                            allow = True
+                        else:
+                            ostype = os_.get('name')
+                            if ostype == OS_TYPE:
+                                allow = False
+                            else:
+                                allow = True
 
-                    if ostype is not None and ostype == OS_TYPE:
-                        cp_path.append(getcp(class_jar_info))
+                if allow:
 
-            
-            # 判断 native
-            native = class_jar_info.get('natives')
-            if native is not None:
-                native_os = native.get(OS_TYPE)
-                if native_os is not None:
-                    download = class_jar_info.get('downloads')
-        
-                    if download is not None :
+                    downloads = class_jar_info.get('downloads')
+                    if downloads is not None:
 
-                        artifact = download.get('artifact')
+                        artifact = downloads.get('artifact')
                         if artifact is not None:
-                            cp_path.append(self.gameDir + ossep + 'libraries' + ossep + getcp(artifact))
-                        
-
-                        # 这里是从jar 包里解压出 .so | dll 动态库
-                        classifiers = download.get('classifiers')
-                        if classifiers is not None:
-                            native_dll = classifiers.get(native_os)
-                            if native_dll is not None:
-
-                                jar_dll_realpath = self.gameDir + ossep + 'libraries' + ossep + getcp(native_dll)
-                                natives_dll_path = self.gameDir + ossep + 'versions' + ossep + self.game_version + "-natives"
-
-                                if isdir(natives_dll_path):
-                                    if self.Djava_library_path == '':
-                                        self.Djava_library_path = jar_dll_realpath
-                                else:
-
-                                    mkdir(natives_dll_path)
-
-                                    with ZipFile(jar_dll_realpath) as z:
-                                        z.extractall(natives_dll_path)
-                        
+                            cp_path.append(self.gameDir + ossep + 'libraries' + getcp(artifact))
+                            print("cp_path.append() --> ", getcp(artifact))
                 else:
                     continue
             else:
-            #    continue
 
-                tmp = class_jar_info.get('downloads').get('artifact')
+                downloads = class_jar_info.get('downloads')
+                if downloads is not None:
 
-                cp_path.append(self.gameDir + ossep + 'libraries' + getcp(tmp))
+                    artifact = downloads.get('artifact')
+                    if artifact is not None:
+                        cp_path.append(self.gameDir + ossep + 'libraries' + getcp(artifact))
+                        print("cp_path.append() --> ", getcp(artifact))
+
+            
+            # 判断 native
+            natives = class_jar_info.get('natives')
+            if natives is not None:
+
+                # 如果当前系统需要这个动态库
+                if OS_TYPE in natives.keys():
+
+                    native_os = natives.get(OS_TYPE)
+                    if native_os is not None:
+                        downloads = class_jar_info.get("downloads")
+                        if downloads is not None:
+
+                            # 这里是从jar 包里解压出 .so | dll 动态库
+                            classifiers = downloads.get('classifiers')
+                            if classifiers is not None:
+                                native_dll = classifiers.get(native_os)
+                                if native_dll is not None:
+
+                                    jar_dll_realpath = self.gameDir + ossep + 'libraries' + ossep + getcp(native_dll)
+                                    natives_dll_path = self.gameDir + ossep + 'versions' + ossep + self.game_version + ossep + self.game_version + "-natives"
+
+                                    print("natives_dll -- 解压")
+                                    if isdir(natives_dll_path):
+                                        if self.Djava_library_path == '':
+                                            self.Djava_library_path = natives_dll_path
+
+                                        self.__unpack_dll(jar_dll_realpath, natives_dll_path)
+
+                                    else:
+                                        mkdir(natives_dll_path)
+                                        self.__unpack_dll(jar_dll_realpath, natives_dll_path)
+                        
+
+                #tmp = class_jar_info.get('downloads').get('artifact')
+                #cp_path.append(self.gameDir + ossep + 'libraries' + getcp(tmp))
         
         cp=''
         for cp_class in cp_path:
             if exists(cp_class):
                 cp += cp_class + pathsep
                 #cp = cp + cp_class + pathsep + '\n'
+                #print('存在', cp_class)
             else:
-                print('不存在',cp_class)
+                print('不存在', cp_class)
 
         self.classpath = cp.rstrip(':')
-        #print("self.classpath -- >");print(self.classpath);exit(0)
+        print("self.classpath -- >")
+        print(self.classpath)
 
-    def order_natives(self):
-        pass
     
     def get_minecraft_args(self):
 
@@ -280,10 +332,11 @@ class MCL:
                     'version_name': LAUNCHER + LAUNCHER_version ,
                     'game_directory': self.gameDir ,
                     'assets_root': self.assetsDir ,
-                    'assets_index_name': self.mc_json.get('id'),
+                    'assets_index_name': self.mc_json.get('assets'),
                     'auth_uuid': self.uuid_and_token ,
                     'auth_access_token': self.uuid_and_token ,
-                    'user_type': 'mojang',
+                    #'user_type': 'mojang',
+                    'user_type': 'legacy',
                     'version_type': self.mc_json.get('type'),
                     }
 
@@ -321,26 +374,26 @@ class MCL:
             compatibilityRules = option_dict.get("compatibilityRules")
             if compatibilityRules is not None:
                 # 先不管它有没多个 compatibilityRules
-                compatibilityRules = compatibilityRules[0]
-                action = compatibilityRules.get("action")
-                if action is not None and action == "allow":
 
-                    allow_os = compatibilityRules.get("os")
-                    if allow_os is not None:
-                        
-                        if allow_os.get("name") == OS_TYPE:
-                            # 停时先不管os 版本
-                            #  if allow_os.get("verions") == ""
-                            jvms_for(option_dict.get("value"))
-                        else:
-                            continue
+                for compatibilityRule in compatibilityRules:
 
-                    else:
-                        continue
-                else:
-                    continue
+                    action = compatibilityRule.get("action")
+                    if action == "allow":
 
-            jvms_for(option_dict.get("value"))
+                        allow_os = compatibilityRule.get("os")
+                        if allow_os is not None:
+                            
+                            if allow_os.get("name") == OS_TYPE:
+                                # 停时先不管os 版本
+                                #  if allow_os.get("verions") == ""
+                                jvms_for(option_dict.get("value"))
+
+                    elif action == "disallow":
+                        pass
+
+            else:
+
+                jvms_for(option_dict.get("value"))
 
         
         tmp_dict = {'natives_directory': self.gameDir + ossep + 'versions' + ossep + self.game_version + ossep + self.game_version + '-natives',
@@ -394,9 +447,6 @@ class args:
 ###### testing 
 
 
-
-
-
 def main():
 
     args = parse_args()
@@ -409,6 +459,10 @@ def main():
         username = user_data.get('username')
         uuid = user_data.get('uuid')
     else:
+        if args.username is None:
+            print("首次启动需要设置一个游戏用户名！")
+            sys.exit(1)
+
         username = args.username
         uuid = get_uuid(username)
         user_data = {'username' : username ,'uuid' : uuid}
