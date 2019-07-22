@@ -1,5 +1,9 @@
-.minecraft/*
+.minecraft/
 
 *.bak
 *.json
 *.log
+*.swp
+*.png
+__pycache__/
+logs/
