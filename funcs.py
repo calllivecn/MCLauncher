@@ -1,27 +1,60 @@
 #!/usr/bin/env python3
-# coding=utf-8
-# date 2019-07-22 17:40:37
+#coding=utf-8
+# date 2019-07-22 23:43:10
 # author calllivecn <c-all@qq.com>
 
 
+__all__ = [
+            "get_json",
+            "set_json",
+            "get_uuid",
+            "get_Duser_home",
+            "get_resources",
+            "get_jars",
+            ]
 
 
+import sys
+import json
+from os import path
 from hashlib import sha1
 from urllib.request import urlopen
 
 
 from logs import logger
 
+
+
+
 #########################
 #
-#
 # URL resources define
-#
 #
 #########################
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
+
+
+def get_json(f):
+    with open(f) as fp:
+        data = json.load(fp)
+    return data
+
+def set_json(obj,f):
+    with open(MC_CONFIG,'w') as fp:
+         data = json.dump(obj,fp)
+    return data
+
+def get_uuid(username):
+    uuid = md5()
+    uuid.update(username.encode("utf8"))
+    return uuid.hexdigest()
+
+def get_Duser_home():
+    abs_path , _ = path.split(path.abspath(sys.argv[0]))
+    return abs_path
+
 
 
 def wget(url, savepath):
