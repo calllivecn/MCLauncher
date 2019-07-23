@@ -5,22 +5,31 @@
 
 
 __all__ = [
+            # 函数
             "get_json",
             "set_json",
             "get_uuid",
             "get_Duser_home",
             "get_resources",
             "get_jars",
+            "sha1",
+
+            # 常量
+            "VERSION_MANIFEST",
+            "RESOURCES_OBJECTS",
             ]
 
 
+import os
 import sys
 import json
 from os import path
-from hashlib import sha1
+from hashlib import md5, sha1
 from urllib.request import urlopen
+from functools import partial
 
 
+from initconfig import *
 from logs import logger
 
 
@@ -35,6 +44,7 @@ from logs import logger
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
 
+BLOCK = 1<<14 # 16k
 
 def get_json(f):
     with open(f) as fp:
@@ -42,7 +52,7 @@ def get_json(f):
     return data
 
 def set_json(obj,f):
-    with open(MC_CONFIG,'w') as fp:
+    with open(GAME_CONFIG,'w') as fp:
          data = json.dump(obj,fp)
     return data
 
@@ -55,18 +65,26 @@ def get_Duser_home():
     abs_path , _ = path.split(path.abspath(sys.argv[0]))
     return abs_path
 
-
-
 def wget(url, savepath):
-
-    data = urlopen(url).read()
-    
-    with open(savepath, "wb") as f:
-        f.write(data)
+    block = 1<<14 # 16k
+    response = urlopen(url)
 
     sha = sha1()
-    sha.update(data)
+    
+    with open(savepath, "wb") as f:
+        for data in iter(partial(response.read, block), b""):
+            f.write(data)
+            sha.update(data)
 
+    return sha.hexdigest()
+
+
+def sha1(filename):
+    sha = sha1()
+    with open(filename) as f:
+        for data in iter(partial(f.read, BLOCK), b""):
+            sha.update(data)
+    
     return sha.hexdigest()
 
 
@@ -85,16 +103,27 @@ def get_resources(assets_obj, mc_obj):
             logger.warn("下载 {} sha1错误，重试 {}/3".format(savepath, i))
         else:
             logger.info("下载 {} 完成。".format(savepath))
-            return
+            break
 
-def get_jars():
-    pass
+def get_jars(jar_obj, savepath):
+    sha1_value = jar_obj.get("sha1")
+    url = jar_obj.get("url")
+    size = jar_obj.get("size")
+
+    for i in range(1, 3 + 1):
+        sha1 = wget(url, savepath)
+        
+        if sha1 != sha1_value:
+            logger.warn("下载 {} sha1错误，重试 {}/3".format(savepath, i))
+        else:
+            logger.info("下载 {} 完成。".format(savepath))
+            break
+
 
 # test
 if __name__ == "__main__":
 
-    import sys
-
-    wget(sys.argv[1], sys.argv[2])
+    print("sha = ", wget(sys.argv[1], sys.argv[2]))
+    
 
 

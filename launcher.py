@@ -4,23 +4,19 @@
 # author calllivecn <c-all@qq.com>
 
 
-LAUNCHER = r'MCL'
-LAUNCHER_version = r'v1.0'
-
-MC_CONFIG = 'MCLauncher.json'
 
 import os
 import sys
 from os import path
 from urllib.parse import urlsplit
 from hashlib import md5, sha1
-from argparse import ArgumentParser
 from zipfile import ZipFile
 from subprocess import check_call, call
 from platform import system
-#from pprint import pprint
+
 
 from funcs import *
+from initconfig import *
 from logs import logger
 
 
@@ -32,96 +28,78 @@ from logs import logger
 #
 #########################
 
-OS_TYPE = system().lower()
 
 class MCL:
-    username = ''
-    abs_gameDir = ''
-    gameDir = '.minecraft'
-    game_version = '' # __get_game_version()
-    json_path = ''
-
     Djava_library_path = ''
 
     jvm_args = ''
     cp_args = ''
     minecraft_args = ''
 
-    def __init__(self, username, uuid, Duser_home):
+    def __init__(self, username, uuid, mds):
         
         self.username = username
-        self.uuid_and_token = uuid
-        self.Duser_home = Duser_home
+        self.uuid_token = uuid
+        self.Duser_home = mds.Duser_home
+        
+        self.mds = mds
 
-        self.abs_gameDir = path.dirname(path.abspath(sys.argv[0]))
-        self.gameDir = self.abs_gameDir + os.sep + self.gameDir
+        self.gameDir = mds.gameDir
+        self.indexes = mds.indexes
+        self.objects = mds.objects
+        self.libraries = mds.libraries
+
+        self.versions = mds.versions
+
+        self.version_id = mds.version_id
+        self.assets = mds.assets
 
         self.__get_gameDir()
-        self.__get_assetsDir()
-        self.__get_game_version()
 
-        self.json_path = self.gameDir + os.sep + 'versions' + os.sep + self.game_version + os.sep + self.game_version + '.json'
+        self.client_jar = mds.client_jar
+        self.client_json = mds.client_json
 
-        self.mc_jar = self.gameDir + os.sep + 'versions' + os.sep + self.game_version + os.sep + self.game_version + '.jar'
-
-        self.mc_json = get_json(self.json_path)
+        self.mc_json = get_json(self.client_json)
 
         self.mainclass = self.mc_json.get('mainClass')
 
         self.__get_Djava_library_path()
-        # self.jvm_args = {'Djava_library_path': self.Djava_library_path ,'Duser_home': self.Duser_home }
 
         self.get_classpath()
 
         self.get_jvm_args()
 
-        jvm_other_args=" "
+        jvm_other_args=" -Xmx1G -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn128M "
 
         # 从${version}.json里解析
         self.get_minecraft_args()
 
-        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.mc_jar + " " + self.mainclass + " " + self.minecraft_args
-        #self.launcher_cmd = ["java "] + list(self.jvm_args) + list(self.classpath + ":") + list(self.mc_jar) + list(self.mainclass) + list(self.minecraft_args)
-        logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
+        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.client_jar + " " + self.mainclass + " " + self.minecraft_args
 
     def launcher(self):
-        #with open("MCL.sh","w") as f:
-        #    f.write(self.launcher_cmd)
-
+        logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
         check_call(self.launcher_cmd,shell=True)
 
     
     def __get_gameDir(self):
         
-        #gamedir = self.Duser_home + os.sep + self.gameDir
-
         if path.exists(self.gameDir):
             pass
         else:
-            logger.debug('游戏目录不存在: {}'.format(self.gameDir))
+            logger.error('游戏目录不存在: {} 或者 当前没有游戏。'.format(self.gameDir))
             sys.exit(1)
         
     def __get_game_version(self):
 
-        versions_path = self.gameDir + os.sep + 'versions'
-
-        for version in os.listdir(versions_path):
-
-            if path.isdir(versions_path + os.sep + version):
-                self.game_version = version # 差多个版本的筛选情况
-
-            else:
-
-                logger.debug('没有找到versions目录')
-                sys.exit(1)
+        if not path.isdir(self.version_id):
+            logger.error('没有找到versions目录')
+            sys.exit(1)
 
     def __get_Djava_library_path(self):
         if self.Djava_library_path == "":
-            self.Djava_library_path = self.gameDir + os.sep + 'versions' + os.sep + self.game_version + os.sep + self.game_version + '-natives'
+            self.Djava_library_path = self.versions + os.sep + self.version_id + '-natives'
         logger.debug("Djava_libaray_path: {}".format(self.Djava_library_path))
     
-    def __get_assetsDir(self):
-        self.assetsDir = self.gameDir + os.sep + 'assets'
 
     def __unpack_dll(self, realpath, target):
 
@@ -160,7 +138,7 @@ class MCL:
                             allow = True
                         else:
                             ostype = os_.get('name')
-                            if ostype == OS_TYPE:
+                            if ostype == OSTYPE:
                                 allow = True
                             else:
                                 allow = False
@@ -171,7 +149,7 @@ class MCL:
                             allow = True
                         else:
                             ostype = os_.get('name')
-                            if ostype == OS_TYPE:
+                            if ostype == OSTYPE:
                                 allow = False
                             else:
                                 allow = True
@@ -183,7 +161,7 @@ class MCL:
 
                         artifact = downloads.get('artifact')
                         if artifact is not None:
-                            cp_path.append(self.gameDir + os.sep + 'libraries' + self.__getcp(artifact))
+                            cp_path.append(self.libraries + self.__getcp(artifact))
                             logger.debug("Class Path 添加: {}".format(self.__getcp(artifact)))
                 else:
                     continue
@@ -194,7 +172,7 @@ class MCL:
 
                     artifact = downloads.get('artifact')
                     if artifact is not None:
-                        cp_path.append(self.gameDir + os.sep + 'libraries' + self.__getcp(artifact))
+                        cp_path.append(self.libraries + self.__getcp(artifact))
                         logger.debug("Class Path 添加: {}".format(self.__getcp(artifact)))
 
             
@@ -203,9 +181,9 @@ class MCL:
             if natives is not None:
 
                 # 如果当前系统需要这个动态库
-                if OS_TYPE in natives.keys():
+                if OSTYPE in natives.keys():
 
-                    native_os = natives.get(OS_TYPE)
+                    native_os = natives.get(OSTYPE)
                     if native_os is not None:
                         downloads = class_jar_info.get("downloads")
                         if downloads is not None:
@@ -216,10 +194,9 @@ class MCL:
                                 native_dll = classifiers.get(native_os)
                                 if native_dll is not None:
 
-                                    jar_dll_realpath = self.gameDir + os.sep + 'libraries' + os.sep + self.__getcp(native_dll)
-                                    natives_dll_path = self.gameDir + os.sep + 'versions' + os.sep + self.game_version + os.sep + self.game_version + "-natives"
+                                    jar_dll_realpath = self.libraries + self.__getcp(native_dll)
+                                    natives_dll_path = self.versions + os.sep + self.version_id + os.sep + self.version_id + "-natives"
 
-                                    logger.debug("natives_dll -- 解压")
                                     if path.isdir(natives_dll_path):
                                         if self.Djava_library_path == '':
                                             self.Djava_library_path = natives_dll_path
@@ -233,21 +210,15 @@ class MCL:
                                         self.__unpack_dll(jar_dll_realpath, natives_dll_path)
                         
 
-                #tmp = class_jar_info.get('downloads').get('artifact')
-                #cp_path.append(self.gameDir + os.sep + 'libraries' + self.__getcp(tmp))
-        
-        cp=''
+        cp = ''
         for cp_class in cp_path:
             if path.exists(cp_class):
                 cp += cp_class + path.pathsep
-                #cp = cp + cp_class + path.pathsep + '\n'
-                #logger.debug('存在', cp_class)
             else:
                 logger.warn('不存在：{}'.format(cp_class))
 
         self.classpath = cp.rstrip(path.pathsep)
-        logger.debug("self.classpath -- >")
-        logger.debug(self.classpath)
+        logger.debug("self.classpath -- >\n{}".format(self.classpath))
 
     
     def get_minecraft_args(self):
@@ -258,8 +229,8 @@ class MCL:
             game_args = self.mc_json.get('arguments')
             value_list = game_args.get('game')
         except KeyError as e:
-            logger.debug("解析MC json文件出错")
-            logger.debug("解析argments 或 game时错误")
+            logger.error("解析MC json文件出错")
+            logger.error("解析argments 或 game时错误")
             raise e
         
         for value in value_list:
@@ -298,13 +269,13 @@ class MCL:
             else:
                 continue
 
-        minecraft_args_build_dict = {'auth_player_name': self.username ,
-                    'version_name': LAUNCHER + LAUNCHER_version ,
-                    'game_directory': self.gameDir ,
-                    'assets_root': self.assetsDir ,
+        minecraft_args_build_dict = {'auth_player_name': self.username,
+                    'version_name': LAUNCHER + LAUNCHER_VERSION,
+                    'game_directory': self.gameDir,
+                    'assets_root': self.assets,
                     'assets_index_name': self.mc_json.get('assets'),
-                    'auth_uuid': self.uuid_and_token ,
-                    'auth_access_token': self.uuid_and_token ,
+                    'auth_uuid': self.uuid_token,
+                    'auth_access_token': self.uuid_token,
                     #'user_type': 'mojang',
                     'user_type': 'legacy',
                     'version_type': self.mc_json.get('type'),
@@ -352,7 +323,7 @@ class MCL:
                         allow_os = compatibilityRule.get("os")
                         if allow_os is not None:
                             
-                            if allow_os.get("name") == OS_TYPE:
+                            if allow_os.get("name") == OSTYPE:
                                 # 停时先不管os 版本
                                 #  if allow_os.get("verions") == ""
                                 jvms_for(option_dict.get("value"))
@@ -365,72 +336,12 @@ class MCL:
                 jvms_for(option_dict.get("value"))
 
         
-        tmp_dict = {'natives_directory': self.gameDir + os.sep + 'versions' + os.sep + self.game_version + os.sep + self.game_version + '-natives',
+        tmp_dict = {'natives_directory': self.versions + os.sep + self.version_id + os.sep + self.version_id + '-natives',
         'launcher_name' : LAUNCHER,
-        'launcher_version' : LAUNCHER_version,
+        'launcher_version' : LAUNCHER_VERSION,
         'classpath' : self.classpath
         }
         self.jvm_args = jvms.format(**tmp_dict).rstrip(' ')
         logger.debug("jvm 参数：{}".format(self.jvm_args))
 
 
-#########################
-#
-#
-# 函数定义 end 
-#
-#
-#########################
-
-
-
-#########################
-#
-# 参数解析 argparse start
-#
-#########################
-
-def parse_args():
-    parse = ArgumentParser(description='一个MC启动器',usage=' Using : %(prog)s [-u|--username]',epilog='http://www.none.org')
-
-    parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
-    
-    return parse.parse_args()
-
-
-#########################
-#
-# 参数解析 argparse end
-#
-#########################
-
-
-###### testing 
-
-def test():
-
-    args = parse_args()
-
-    Duser_home = get_Duser_home()
-    os.chdir(Duser_home)
-
-    if path.exists(MC_CONFIG):
-        user_data = get_json(MC_CONFIG)
-        username = user_data.get('username')
-        uuid = user_data.get('uuid')
-    else:
-        if args.username is None:
-            logger.debug("首次启动需要设置一个游戏用户名！")
-            sys.exit(1)
-
-        username = args.username
-        uuid = get_uuid(username)
-        user_data = {'username' : username ,'uuid' : uuid}
-        set_json(user_data,MC_CONFIG)
-
-    mclauncher = MCL(username,uuid,Duser_home)
-    mclauncher.launcher()
-
-
-if __name__ == "__main__":
-    test()
