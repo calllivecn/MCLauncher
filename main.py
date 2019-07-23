@@ -30,6 +30,7 @@ def main():
     logger.setLevel(args.verbose)
 
     mds = McDirStruct()
+    mds.version_id()
 
     os.chdir(mds.Duser_home)
 

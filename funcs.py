@@ -5,10 +5,14 @@
 
 
 __all__ = [
+            "loads_json",
             "get_json",
             "set_json",
             "get_uuid",
             "get_Duser_home",
+            "getcp",
+            "wget",
+            "fillpath",
             "get_resources",
             "get_jars",
             "sha1",
@@ -22,6 +26,7 @@ import json
 from os import path
 from hashlib import md5, sha1
 from urllib.request import urlopen
+from urllib.parse import urlsplit
 from functools import partial
 
 
@@ -30,6 +35,10 @@ from logs import logger
 
 
 BLOCK = 1<<14 # 16k
+
+
+def loads_json(f):
+    return json.loads(f)
 
 def get_json(f):
     with open(f) as fp:
@@ -50,11 +59,18 @@ def get_Duser_home():
     abs_path , _ = path.split(path.abspath(sys.argv[0]))
     return abs_path
 
+def getcp(obj):
+    url = obj.get("url")
+    size = obj.get("size")
+    realpath = urlsplit(url).path
+    tmp = realpath.replace("/", os.sep)
+    return tmp
+
 
 def fillpath(realpath):
-    dirpath, _ = path.dirname(realpath)
-    if path.isdir(dirpath):
-        os.makedirs(dirpaht)
+    dirpath = path.dirname(realpath)
+    if not path.isdir(dirpath):
+        os.makedirs(dirpath)
 
 def wget(url, savepath):
     block = 1<<14 # 16k
@@ -70,7 +86,7 @@ def wget(url, savepath):
     return sha.hexdigest()
 
 
-def sha1(filename):
+def sha1sum(filename):
     sha = sha1()
     with open(filename) as f:
         for data in iter(partial(f.read, BLOCK), b""):
@@ -83,7 +99,10 @@ def select(l):
     l_len = len(l)
     
     while True:
-        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：")
+        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：[已选择:{}]".format(l_len, l_len-1))
+        if user_select == "":
+            return l_len - 1
+
         try:
             number = int(user_select)
         except ValueError:
@@ -104,14 +123,21 @@ def install_select(vm):
     latest = vm.get("latest")
     versions = vm.get("versions")
 
-    snaphost_list = []
+    #logger.debug("version_manifest: {}".format(versions))
+
+    versions.reverse()
+    snapshot_list = []
     release_list = []
     for info in versions:
         type_ = info.get("type")
-        if type_ == "snapshot" or type_ == "release":
-            snaphost_list.append(info.get("id"))
+        logger.debug("遍历游戏版本: {}, type: {}".format(info, type_))
+        if type_ == "snapshot":
+            logger.debug("加入snapshot list:{}".format(info))
+            snapshot_list.append(info)
         elif type_ == "release":
-            release_list.append(info.get("id"))
+            logger.debug("加入release list:{}".format(info))
+            release_list.append(info)
+            snapshot_list.append(info)
 
     release = True
     while True:
@@ -119,10 +145,11 @@ def install_select(vm):
             i = 0
             for info in release_list:
                 print("{}: {}".format(i, info.get("id")))
+                i += 1
 
             id_ = select(release_list)
 
-            if id_ == "s" 
+            if id_ == "s":
                 release = False
                 continue
             elif id_ == "r":
@@ -133,27 +160,27 @@ def install_select(vm):
 
         else:
             i = 0
-            for info in snaphost_list:
+            for info in snapshot_list:
                 print("{}: {}".format(i, info.get("id")))
+                i += 1
 
-            id_ = select(snaphost_list)
+            id_ = select(snapshotlist)
 
-            if id_ == "s" 
+            if id_ == "s":
                 release = False
                 continue
             elif id_ == "r":
                 release = True
                 continue
 
-            return snaphost_list[id_]
+            return snapshot_list[id_]
 
 
-def get_resources(assets_obj, mc_obj):
+def get_resources(mc_obj, savepath):
     hash_value = mc_obj.get("hash")
     size = mc_obj.get("size")
 
     url = RESOURCES_OBJECTS + hash_value[0:2] + "/" + hash_value
-    savepath = assets_obj + ossep + hash_value[0:2] + ossep + hash_value
 
     for i in range(1, 3 + 1):
 
@@ -171,9 +198,10 @@ def get_jars(jar_obj, savepath):
     size = jar_obj.get("size")
 
     for i in range(1, 3 + 1):
-        sha1 = wget(url, savepath)
+
+        sha = wget(url, savepath)
         
-        if sha1 != sha1_value:
+        if sha != sha1_value:
             logger.warn("下载 {} sha1错误，重试 {}/3".format(savepath, i))
         else:
             logger.info("下载 {} 完成。".format(savepath))

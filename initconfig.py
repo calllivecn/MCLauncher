@@ -61,8 +61,6 @@ class McDirStruct:
         
         self.versions = self.gameDir + os.sep + "versions"
         
-        self.version_id = version_id
-
 
     # 选择 version_id 后才能 self.client_jar self.client_json self.assetindex
     def version_id(self, version_id=None):
@@ -82,6 +80,9 @@ class McDirStruct:
                 self.version_id = vers[0]
                 logger.info("选择版本：{}".format(self.version_id))
 
+                self.client_jar = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".jar"
+
+                self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
         else:
             
             self.version_id = version_id
@@ -93,7 +94,7 @@ class McDirStruct:
         
     def mk_dir_struct(self, version_id):
         
-        for d in [self.gameDir, self.assets, self.indexes, self.objects, self.libraries, self.versions, self.version_id]
+        for d in [self.gameDir, self.assets, self.indexes, self.objects, self.libraries, self.versions, self.version_id]:
         
             try:
                 os.mkdir(d)
