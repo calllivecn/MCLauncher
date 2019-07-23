@@ -4,39 +4,37 @@
 # author calllivecn <c-all@qq.com>
 
 
-__all__ = ["logger"]
+__all__ = ["logger", "setLevel"]
 
 
 import sys
 import logging
 
-logger = logging.Logger("MCL")
+logger = logging.getLogger("MCL")
+
+if logger is None:
+    logger = logging.Logger("MCL")
 
 stream = logging.StreamHandler(sys.stderr)
 
-fmt = logging.Formatter("%(asctime)s %(filename)s:%(lineno)d %(message)s", datefmt="%Y-%m-%d-%H:%M:%S")
+fmt = logging.Formatter("%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s", datefmt="%Y-%m-%d-%H:%M:%S")
 
 stream.setFormatter(fmt)
 
 logger.addHandler(stream)
 
+
+
 logger.setLevel(logging.WARN)
 
 
 
-#def getlogger(level=logging.WRAN):
-#
-#    logger = logging.Logger("MCL")
-#    
-#    stream = logging.StreamHandler(sys.stderr)
-#    
-#    fmt = logging.Formatter("%(asctime)s %(filename)s:%(lineno)d %(message)s", datefmt="%Y-%m-%d-%H:%M:%S")
-#    
-#    stream.setFormatter(fmt)
-#    
-#    logger.addHandler(stream)
-#
-#    return logger.setLevel(level)
+def setLevel(level):
 
+    if level == 0:
+        logger.setLevel(logging.WARN)
+    elif level == 1:
+        logger.setLevel(logging.INFO)
+    elif level == 2 or level > 2:
+        logger.setLevel(logging.DEBUG)
 
-#logger = getlogger()
