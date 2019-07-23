@@ -8,8 +8,7 @@
 import os
 import sys
 from os import path
-from urllib.parse import urlsplit
-from hashlib import md5, sha1
+from hashlib import md5
 from zipfile import ZipFile
 from subprocess import check_call, call
 from platform import system
@@ -161,8 +160,8 @@ class MCL:
 
                         artifact = downloads.get('artifact')
                         if artifact is not None:
-                            cp_path.append(self.libraries + self.__getcp(artifact))
-                            logger.debug("Class Path 添加: {}".format(self.__getcp(artifact)))
+                            cp_path.append(self.libraries + getcp(artifact))
+                            logger.debug("Class Path 添加: {}".format(getcp(artifact)))
                 else:
                     continue
             else:
@@ -172,8 +171,8 @@ class MCL:
 
                     artifact = downloads.get('artifact')
                     if artifact is not None:
-                        cp_path.append(self.libraries + self.__getcp(artifact))
-                        logger.debug("Class Path 添加: {}".format(self.__getcp(artifact)))
+                        cp_path.append(self.libraries + getcp(artifact))
+                        logger.debug("Class Path 添加: {}".format(getcp(artifact)))
 
             
             # 判断 native
@@ -194,7 +193,7 @@ class MCL:
                                 native_dll = classifiers.get(native_os)
                                 if native_dll is not None:
 
-                                    jar_dll_realpath = self.libraries + self.__getcp(native_dll)
+                                    jar_dll_realpath = self.libraries + getcp(native_dll)
                                     natives_dll_path = self.versions + os.sep + self.version_id + os.sep + self.version_id + "-natives"
 
                                     if path.isdir(natives_dll_path):
@@ -231,35 +230,51 @@ class MCL:
         except KeyError as e:
             logger.error("解析MC json文件出错")
             logger.error("解析argments 或 game时错误")
-            raise e
+            sys.exit(1)
         
+        allow = True
         for value in value_list:
-            set_flag = True
-            compatibilityRules = value.get("compatibilityRules")
-            if compatibilityRules is not None:
-                # 从这个list中拿和dict
-                for compatibilityRules_dict in compatibilityRules:
-                    action = compatibilityRules_dict.get('action')
-                    if action is not None and action == "allow":
-                        
-                        features =  compatibilityRules_dict.get('features')
+
+            if isinstance(value, dict):
+                
+                rules = value.get("rules")
+                for rule in rules:
+
+                    action = rule.get('action')
+                    if action == "allow":
+
+                        features =  rule.get('features')
                         if features is not None:
 
                             for k in features.keys():
                                 if k == "is_demo_user":
-                                    set_flag = False
+                                    allow = False
                                     continue
                                 elif k == "has_custom_resolution":
-                                    set_flag = False
+                                    allow = False
                                     continue
                         
-                    else:
-                        set_flag = False
+                    elif action == "disallow":
+                        allow = False
                         continue
+
+
+            elif isinstance(value, str):
+                if value.startswith("${") and value.endswith("}"):
+                    mc_args += "{}".format(value.lstrip("$")) + " "
+                else:
+                    mc_args += value + " "
+                
+                continue
+
+            else:
+                logger.warn("未知minecraft 参数：{} 尝试忽略。".format(value))
+                continue
 
             # # #############
             
-            if set_flag:
+            if allow:
+                logger.debug("启用minecraft 参数：{}。".format(value))
                 for option in value.get('value'):
 
                     if option.startswith("${") and option.endswith("}"):
@@ -267,6 +282,7 @@ class MCL:
                     else:
                         mc_args += option + " "
             else:
+                logger.debug("不启用minecraft 参数：{}。".format(value))
                 continue
 
         minecraft_args_build_dict = {'auth_player_name': self.username,
@@ -295,44 +311,65 @@ class MCL:
         
         jvms = ''
 
-        def jvms_for(vaule_list):
+        def jvms_for(value):
 
             nonlocal jvms
 
-            for jvm_arg in option_dict.get("value"):
+            if isinstance(value, str):
+                jvms += value.replace("${","{") + " "
 
-                jvm_arg = jvm_arg.replace("${","{")
+            elif isinstance(value, list):
 
-                jvms += jvm_arg + " "
-
-            
+                for jvm_arg in option_dict.get("value"):
+                    jvms += jvm_arg.replace("${","{") + " "
         
         jvm_list = self.mc_json.get("arguments").get("jvm")
 
+        allow = True
         for option_dict in jvm_list:
 
-            compatibilityRules = option_dict.get("compatibilityRules")
-            if compatibilityRules is not None:
-                # 先不管它有没多个 compatibilityRules
+            if isinstance(option_dict, dict):
 
-                for compatibilityRule in compatibilityRules:
+                rules = option_dict.get("rules")
+                for rule in rules:
 
-                    action = compatibilityRule.get("action")
+                    action = rule.get("action")
                     if action == "allow":
 
-                        allow_os = compatibilityRule.get("os")
+                        allow_os = rule.get("os")
                         if allow_os is not None:
-                            
-                            if allow_os.get("name") == OSTYPE:
+
+                            os_name = allow_os.get("name")
+                            if os_name is not None:
+
+                                if os_name == OSTYPE:
                                 # 停时先不管os 版本
                                 #  if allow_os.get("verions") == ""
-                                jvms_for(option_dict.get("value"))
+                                    allow = True
+                                else:
+                                    allow = False
+                            else:
+                                allow = False
+                        else:
+                            allow = False
 
                     elif action == "disallow":
-                        pass
 
+                        allow_os = rule.get("os")
+                        if allow_os is not None:
+
+                            os_name = allow_os.get("name") 
+                            if os_name == OSTYPE:
+                                allow = False
+                            else:
+                                allow = True
+                        else:
+                            allow = False
             else:
+                jvms_for(option_dict)
+                continue
 
+            if allow:
                 jvms_for(option_dict.get("value"))
 
         
@@ -341,6 +378,7 @@ class MCL:
         'launcher_version' : LAUNCHER_VERSION,
         'classpath' : self.classpath
         }
+        logger.debug("jvm 参数(解析前)：{}".format(jvms))
         self.jvm_args = jvms.format(**tmp_dict).rstrip(' ')
         logger.debug("jvm 参数：{}".format(self.jvm_args))
 
