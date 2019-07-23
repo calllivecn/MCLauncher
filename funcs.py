@@ -5,7 +5,6 @@
 
 
 __all__ = [
-            # 函数
             "get_json",
             "set_json",
             "get_uuid",
@@ -13,10 +12,7 @@ __all__ = [
             "get_resources",
             "get_jars",
             "sha1",
-
-            # 常量
-            "VERSION_MANIFEST",
-            "RESOURCES_OBJECTS",
+            "install_select",
             ]
 
 
@@ -32,17 +28,6 @@ from functools import partial
 from initconfig import *
 from logs import logger
 
-
-
-
-#########################
-#
-# URL resources define
-#
-#########################
-
-VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
-RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
 
 BLOCK = 1<<14 # 16k
 
@@ -65,6 +50,12 @@ def get_Duser_home():
     abs_path , _ = path.split(path.abspath(sys.argv[0]))
     return abs_path
 
+
+def fillpath(realpath):
+    dirpath, _ = path.dirname(realpath)
+    if path.isdir(dirpath):
+        os.makedirs(dirpaht)
+
 def wget(url, savepath):
     block = 1<<14 # 16k
     response = urlopen(url)
@@ -86,6 +77,75 @@ def sha1(filename):
             sha.update(data)
     
     return sha.hexdigest()
+
+
+def select(l):
+    l_len = len(l)
+    
+    while True:
+        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：")
+        try:
+            number = int(user_select)
+        except ValueError:
+            if user_select == "s" or user_select == "r":
+                return user_select
+            else:
+                print("请正确输入！")
+                continue
+
+        if l_len < number < 0:
+            print("请正确输入！")
+            continue
+
+        return number
+
+# version_manifest alias vm
+def install_select(vm):
+    latest = vm.get("latest")
+    versions = vm.get("versions")
+
+    snaphost_list = []
+    release_list = []
+    for info in versions:
+        type_ = info.get("type")
+        if type_ == "snapshot" or type_ == "release":
+            snaphost_list.append(info.get("id"))
+        elif type_ == "release":
+            release_list.append(info.get("id"))
+
+    release = True
+    while True:
+        if release:
+            i = 0
+            for info in release_list:
+                print("{}: {}".format(i, info.get("id")))
+
+            id_ = select(release_list)
+
+            if id_ == "s" 
+                release = False
+                continue
+            elif id_ == "r":
+                release = True
+                continue
+
+            return release_list[id_]
+
+        else:
+            i = 0
+            for info in snaphost_list:
+                print("{}: {}".format(i, info.get("id")))
+
+            id_ = select(snaphost_list)
+
+            if id_ == "s" 
+                release = False
+                continue
+            elif id_ == "r":
+                release = True
+                continue
+
+            return snaphost_list[id_]
 
 
 def get_resources(assets_obj, mc_obj):
