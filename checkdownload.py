@@ -112,6 +112,15 @@ def install_game():
 
 if __name__ == "__main__":
 
-    setLevel(1)
+    from argparse import ArgumentParser
+
+    parse = ArgumentParser(description='MC下载器',usage='%(prog)s [-v]',epilog='http://www.none.org')
+
+    parse.add_argument("-v", "--verbose", action="count", default=1, help="verbose")
+
+    args = parse.parse_args()
+
+    setLevel(args.verbose)
+
     install_game()
 
