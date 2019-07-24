@@ -73,11 +73,11 @@ class MCL:
         # 从${version}.json里解析
         self.get_minecraft_args()
 
-        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.client_jar + " " + self.mainclass + " " + self.minecraft_args
+        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.client_jar + '" ' + self.mainclass + " " + self.minecraft_args
 
     def launcher(self):
         logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
-        check_call(self.launcher_cmd,shell=True)
+        check_call(self.launcher_cmd, shell=True)
 
     
     def __get_gameDir(self):
@@ -107,14 +107,6 @@ class MCL:
                 if name.endswith(".so") or name.endswith(".SO") or name.endswith(".dll") or name.endswith(".DLL"):
                     zf.extract(name, target)
 
-    def __getcp(self, tmp):
-        url = tmp.get('url')
-        size = tmp.get('size')
-        sha1 = tmp.get('sha1')
-        tmp2 = urlsplit(url).path
-        tmp2 = tmp2.replace('/', os.sep)
-        return tmp2
-    
 
     def get_classpath(self):
     
@@ -316,12 +308,14 @@ class MCL:
             nonlocal jvms
 
             if isinstance(value, str):
-                jvms += value.replace("${","{") + " "
+                value = value.replace('${','"{') 
+                jvms += value.replace('}', '}"') + " "
 
             elif isinstance(value, list):
 
                 for jvm_arg in option_dict.get("value"):
-                    jvms += jvm_arg.replace("${","{") + " "
+                    jvm_arg = jvm_arg.replace('${', '"{')
+                    jvms += jvm_arg.replace('}','}"') + " "
         
         jvm_list = self.mc_json.get("arguments").get("jvm")
 
@@ -379,7 +373,7 @@ class MCL:
         'classpath' : self.classpath
         }
         logger.debug("jvm 参数(解析前)：{}".format(jvms))
-        self.jvm_args = jvms.format(**tmp_dict).rstrip(' ')
+        self.jvm_args = jvms.format(**tmp_dict).rstrip(' ').rstrip('"')
         logger.debug("jvm 参数：{}".format(self.jvm_args))
 
 
