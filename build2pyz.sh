@@ -7,5 +7,5 @@ temp=$(mktemp -d)
 
 cp -v *.py "$temp"
 
-python3 -m zipapp "$temp" -c -m "main:main" -o MCLauncher.pyz -p "/usr/bin/env python3"
+python3 -m zipapp "$temp" -m "main:main" -o MCLauncher.pyz -p "/usr/bin/env python3"
 

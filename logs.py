@@ -23,8 +23,9 @@ stream.setFormatter(fmt)
 
 logger.addHandler(stream)
 
+logfilename = sys.argv[0].replace("py", "logs")
 
-logsname = logging.FileHandler(sys.argv[0], "a")
+logsname = logging.FileHandler(logfilename, "a")
 logsname.setFormatter(fmt)
 
 logger.addHandler(logsname)
