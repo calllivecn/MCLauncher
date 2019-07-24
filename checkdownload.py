@@ -46,7 +46,7 @@ def install_game():
     logger.info("下载 client: {}".format(mds.client_jar))
 
     if path.exists(mds.client_jar):
-        logger.info("{} 已存在。".format(mds.client_jar))
+        logger.info("{} 已存在 ... 跳过".format(mds.client_jar))
     else:
         wget(client.get("url"), mds.client_jar)
 
@@ -55,15 +55,17 @@ def install_game():
     for lib in libraries:
         dl = lib.get("downloads")
         artifact = dl.get("artifact")
+    
+        if artifact is not None:
 
-        urlpath = getcp(artifact)
-        realpath = mds.libraries + urlpath
+            urlpath = getcp(artifact)
+            realpath = mds.libraries + urlpath
 
-        fillpath(realpath)
-        if path.exists(realpath):
-            logger.info("{} 已存在。".format(realpath))
-        else:
-            get_jars(artifact, realpath)
+            fillpath(realpath)
+            if path.exists(realpath):
+                logger.info("{} 已存在 ... 跳过".format(realpath))
+            else:
+                get_jars(artifact, realpath)
 
         # 如需要，下载natives 文件
         natives = dl.get("classifiers")
@@ -75,11 +77,10 @@ def install_game():
 
                 fillpath(realpath)
                 if path.exists(realpath):
-                    logger.info("{} 已存在。".format(realpath))
+                    logger.info("{} 已存在 ... 跳过".format(realpath))
                 else:
                     get_jars(value, realpath)
                 
-
 
     assetindex = versions_json.get("assetIndex")
     assetindex_id = assetindex.get("id")
@@ -106,11 +107,11 @@ def install_game():
         else:
             get_resources(v, savepath)
 
-    
+    dler.join()
         
 
 if __name__ == "__main__":
 
-    setLevel(2)
+    setLevel(1)
     install_game()
 

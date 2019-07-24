@@ -4,6 +4,7 @@
 # author calllivecn <c-all@qq.com>
 
 import os
+import sys
 from os import path
 from argparse import ArgumentParser
 
@@ -14,7 +15,7 @@ from logs import logger
 
 
 def parse_args():
-    parse = ArgumentParser(description='一个MC启动器',usage=' Using : %(prog)s [-u|--username]',epilog='http://www.none.org')
+    parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [-u|--username]',epilog='http://www.none.org')
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
 

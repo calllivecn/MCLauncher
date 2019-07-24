@@ -15,6 +15,7 @@ __all__ = [
             "fillpath",
             "get_resources",
             "get_jars",
+            "dler",
             "sha1",
             "install_select",
             ]
@@ -28,6 +29,8 @@ from hashlib import md5, sha1
 from urllib.request import urlopen
 from urllib.parse import urlsplit
 from functools import partial
+from threading import Thread
+from queue import Queue
 
 
 from initconfig import *
@@ -72,6 +75,7 @@ def fillpath(realpath):
     if not path.isdir(dirpath):
         os.makedirs(dirpath)
 
+
 def wget(url, savepath):
     block = 1<<14 # 16k
     response = urlopen(url)
@@ -86,6 +90,61 @@ def wget(url, savepath):
     return sha.hexdigest()
 
 
+class Downloader:
+    """
+    多线程http下载器
+    """
+    def __init__(self, worker=20):
+
+        self.taskqueue = Queue(100)
+
+        self.threads = []
+
+        self.func
+
+        self.count = 0
+
+        logger.debug("启动下载线程：")
+        for _ in range(worker):
+
+            th = Thread(target=self.func, daemon=True)
+            logger.debug("线程：{}".format(th.name))
+            th.start()
+            self.threads.append(th)
+
+
+    def submit(self, task):
+        logger.debug("提交任务：{}".format(task))
+        self.count += 1
+        self.taskqueue.put(task)
+            
+    def func(self):
+        
+        while True:
+
+            url, savepath = self.taskqueue.get()
+
+            block = 1<<14 # 16k
+            response = urlopen(url, timeout=15)
+    
+            with open(savepath, "wb") as f:
+                for data in iter(partial(response.read, block), b""):
+                    f.write(data)
+
+            self.taskqueue.task_done()
+            logger.info("下载 {} 完成。".format(savepath))
+            self.count -= 1
+            logger.debug("当前队列线程数：{}".format(self.count))
+
+
+    def join(self):
+        logger.debug("join 下载队列。")
+        self.taskqueue.join()
+
+
+dler = Downloader()
+
+
 def sha1sum(filename):
     sha = sha1()
     with open(filename) as f:
@@ -95,11 +154,30 @@ def sha1sum(filename):
     return sha.hexdigest()
 
 
+def get_resources(mc_obj, savepath):
+    hash_value = mc_obj.get("hash")
+    size = mc_obj.get("size")
+
+    url = RESOURCES_OBJECTS + hash_value[0:2] + "/" + hash_value
+
+    logger.info("开始下载 {} 。。。".format(savepath))
+    dler.submit((url, savepath))
+
+def get_jars(jar_obj, savepath):
+    sha1_value = jar_obj.get("sha1")
+    url = jar_obj.get("url")
+    size = jar_obj.get("size")
+
+    logger.info("开始下载 {} 。。。".format(savepath))
+    dler.submit((url, savepath))
+        
+
+
 def select(l):
     l_len = len(l)
     
     while True:
-        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：[已选择:{}]".format(l_len, l_len-1))
+        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：[已选择:{}]".format(l_len - 1, l_len - 1))
         if user_select == "":
             return l_len - 1
 
@@ -164,7 +242,7 @@ def install_select(vm):
                 print("{}: {}".format(i, info.get("id")))
                 i += 1
 
-            id_ = select(snapshotlist)
+            id_ = select(snapshot_list)
 
             if id_ == "s":
                 release = False
@@ -175,37 +253,6 @@ def install_select(vm):
 
             return snapshot_list[id_]
 
-
-def get_resources(mc_obj, savepath):
-    hash_value = mc_obj.get("hash")
-    size = mc_obj.get("size")
-
-    url = RESOURCES_OBJECTS + hash_value[0:2] + "/" + hash_value
-
-    for i in range(1, 3 + 1):
-
-        wget_hash_value = wget(url, savepath)
-
-        if wget_hash_value != hash_value:
-            logger.warn("下载 {} sha1错误，重试 {}/3".format(savepath, i))
-        else:
-            logger.info("下载 {} 完成。".format(savepath))
-            break
-
-def get_jars(jar_obj, savepath):
-    sha1_value = jar_obj.get("sha1")
-    url = jar_obj.get("url")
-    size = jar_obj.get("size")
-
-    for i in range(1, 3 + 1):
-
-        sha = wget(url, savepath)
-        
-        if sha != sha1_value:
-            logger.warn("下载 {} sha1错误，重试 {}/3".format(savepath, i))
-        else:
-            logger.info("下载 {} 完成。".format(savepath))
-            break
 
 
 # test
