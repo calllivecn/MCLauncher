@@ -24,6 +24,11 @@ stream.setFormatter(fmt)
 logger.addHandler(stream)
 
 
+logsname = logging.FileHandler(sys.argv[0], "a")
+logsname.setFormatter(fmt)
+
+logger.addHandler(logsname)
+
 
 logger.setLevel(logging.WARN)
 
