@@ -15,3 +15,4 @@ logs/
 *.swp
 *.png
 MCLauncher.pyz
+*.logs
