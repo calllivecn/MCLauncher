@@ -8,6 +8,7 @@
 import os
 import sys
 from os import path
+from shutil import rmtree
 from hashlib import md5
 from zipfile import ZipFile
 from subprocess import check_call, call
@@ -79,6 +80,8 @@ class MCL:
         logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
         check_call(self.launcher_cmd, shell=True)
 
+        self.clear_natives()
+
     
     def __get_gameDir(self):
         
@@ -107,6 +110,8 @@ class MCL:
                 if name.endswith(".so") or name.endswith(".SO") or name.endswith(".dll") or name.endswith(".DLL"):
                     zf.extract(name, target)
 
+    def clear_natives(self):
+        rmtree(self.natives_dll_path)
 
     def get_classpath(self):
     
@@ -186,19 +191,19 @@ class MCL:
                                 if native_dll is not None:
 
                                     jar_dll_realpath = self.libraries + getcp(native_dll)
-                                    natives_dll_path = self.versions + os.sep + self.version_id + os.sep + self.version_id + "-natives"
+                                    self.natives_dll_path = self.versions + os.sep + self.version_id + os.sep + self.version_id + "-natives"
 
-                                    if path.isdir(natives_dll_path):
+                                    if path.isdir(self.natives_dll_path):
                                         if self.Djava_library_path == '':
-                                            self.Djava_library_path = natives_dll_path
+                                            self.Djava_library_path = self.natives_dll_path
 
-                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, natives_dll_path))
-                                        self.__unpack_dll(jar_dll_realpath, natives_dll_path)
+                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, self.natives_dll_path))
+                                        self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
 
                                     else:
-                                        os.mkdir(natives_dll_path)
-                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, natives_dll_path))
-                                        self.__unpack_dll(jar_dll_realpath, natives_dll_path)
+                                        os.mkdir(self.natives_dll_path)
+                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, self.natives_dll_path))
+                                        self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
                         
 
         cp = ''
