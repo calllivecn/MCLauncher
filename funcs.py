@@ -125,11 +125,15 @@ class Downloader:
             url, savepath = self.taskqueue.get()
 
             block = 1<<14 # 16k
-            response = urlopen(url, timeout=15)
+            try:
+                response = urlopen(url, timeout=15)
     
-            with open(savepath, "wb") as f:
-                for data in iter(partial(response.read, block), b""):
-                    f.write(data)
+                with open(savepath, "wb") as f:
+                    for data in iter(partial(response.read, block), b""):
+                        f.write(data)
+            except socket.timeout:
+                logger.warn("下载超时：{}".format(url))
+                continue
 
             self.taskqueue.task_done()
             logger.info("下载 {} 完成。".format(savepath))
