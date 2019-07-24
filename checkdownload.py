@@ -35,7 +35,10 @@ def install_game():
     mds.version_id(version_id)
 
     fillpath(mds.client_json)
-    wget(manifest_json.get("url"), mds.client_json)
+    if path.exists(mds.client_json):
+        logger.info("{} 已存在 ... 跳过".format(mds.client_json))
+    else:
+        wget(manifest_json.get("url"), mds.client_json)
 
     versions_json = get_json(mds.client_json)
 

@@ -24,6 +24,7 @@ __all__ = [
 import os
 import sys
 import json
+import socket
 from os import path
 from hashlib import md5, sha1
 from urllib.request import urlopen
@@ -50,7 +51,7 @@ def get_json(f):
 
 def set_json(obj,f):
     with open(GAME_CONFIG,'w') as fp:
-         data = json.dump(obj,fp)
+         data = json.dump(obj, fp, ensure_ascii=False, indent=4)
     return data
 
 def get_uuid(username):
@@ -133,6 +134,8 @@ class Downloader:
                         f.write(data)
             except socket.timeout:
                 logger.warn("下载超时：{}".format(url))
+                self.taskqueue.task_done()
+                self.count -= 1
                 continue
 
             self.taskqueue.task_done()
