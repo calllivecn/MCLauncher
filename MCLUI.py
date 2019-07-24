@@ -76,7 +76,7 @@ def select_version():
 win = tk.Tk()
 win.geometry(get_win_location(win))#("400x200")
 
-win.title("MCL v1.0 author zx")
+win.title("MCL v1.0")
 
 frame1 = tk.Frame(win)
 frame1.pack(side="top",fill="x")
@@ -92,7 +92,7 @@ entry1.pack(side="left",fill="x",expand="yes")
 frame2 = tk.Frame(win)
 frame2.pack(side="top",fill="x")
 
-label2 = tk.Label(frame2,text="密码:")
+label2 = tk.Label(frame2,text="密  码:")
 label2.pack(side="left")
 
 entry2 = tk.Entry(frame2,show="*")
