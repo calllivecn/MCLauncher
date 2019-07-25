@@ -4,7 +4,7 @@
 # author calllivecn <c-all@qq.com>
 
 __all__ = [
-            "downloadall",
+            "get_manifest",
             ]
 
 import os
@@ -21,9 +21,6 @@ def get_manifest():
     logger.debug("下载：{}".format(VERSION_MANIFEST))
     manifest = urlopen(VERSION_MANIFEST)
     return loads_json(manifest.read())
-
-def downloadall(mds):
-    pass
 
 def install_game():
     mds = McDirStruct()

@@ -15,7 +15,7 @@ from logs import logger
 
 
 def parse_args():
-    parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [-u|--username]',epilog='http://www.none.org')
+    parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [optional]',epilog='http://www.none.org')
 
     parse.add_argument("--install-game", action="store_true", help="安装游戏")
 
