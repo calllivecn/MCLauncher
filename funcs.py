@@ -79,7 +79,10 @@ def fillpath(realpath):
 
 def wget(url, savepath):
     block = 1<<14 # 16k
-    response = request.urlopen(url)
+
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
+    req = request.Request(url, headers=headers)
+    response = request.urlopen(req, timeout=15)
 
     sha = sha1()
     

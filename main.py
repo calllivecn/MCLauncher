@@ -33,7 +33,12 @@ def main():
 
     if args.install_game:
         from checkdownload import ext_main
-        ext_main(args.verbose)
+
+        if args.verbose <= 1:
+            ext_main(1)
+        else:
+            ext_main(args.verbose)
+
         sys.exit(0)
 
     logger.setLevel(args.verbose)
