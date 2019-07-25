@@ -185,14 +185,19 @@ def select(l):
     l_len = len(l)
     
     while True:
-        user_select = input("请选择版本序号0-{} 或者查看snaphost版输入s：[已选择:{}]".format(l_len - 1, l_len - 1))
+        print("输入s切换快照版和正式版，输入q退出")
+        user_select = input("请选择版本序号 0-{}: [已选择:{}] ".format(l_len - 1, l_len - 1))
+
         if user_select == "":
             return l_len - 1
+
+        if user_select == "q":
+            sys.exit(0)
 
         try:
             number = int(user_select)
         except ValueError:
-            if user_select == "s" or user_select == "r":
+            if user_select == "s":
                 return user_select
             else:
                 print("请正确输入！")
@@ -236,11 +241,12 @@ def install_select(vm):
             id_ = select(release_list)
 
             if id_ == "s":
-                release = False
-                continue
-            elif id_ == "r":
-                release = True
-                continue
+                if release:
+                    release = False
+                    continue
+                else:
+                    release = True
+                    continue
 
             return release_list[id_]
 
@@ -253,11 +259,12 @@ def install_select(vm):
             id_ = select(snapshot_list)
 
             if id_ == "s":
-                release = False
-                continue
-            elif id_ == "r":
-                release = True
-                continue
+                if release:
+                    release = False
+                    continue
+                else:
+                    release = True
+                    continue
 
             return snapshot_list[id_]
 
