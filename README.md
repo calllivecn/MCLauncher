@@ -7,7 +7,7 @@
 
 游戏下载：
 
-大陆专区，下载游戏需要代理，，，。。。。
+大陆地区，下载游戏需要代理，，，。。。。
 
 	例子：
 
@@ -15,7 +15,8 @@
 	export https_proxy="http://127.0.0.1:9000"
 
 ```shell
-	python3 checkdownload.py 根据提示操作。
+	python3 main.py 根据提示操作。
+	或者 python3 MCLauncher.pyz
 ```
 
 
