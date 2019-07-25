@@ -9,6 +9,7 @@
 
 
 使用注意事项：
+
 	- 最好每次安装游戏，都新建一个目录。
 
 游戏下载：
@@ -21,13 +22,19 @@
 	export https_proxy="http://127.0.0.1:9000"
 
 ```shell
-	python3 main.py 根据提示操作。
-	或者 python3 MCLauncher.pyz
+	python3 main.py --install-game 根据提示操作。
+	或者 python3 MCLauncher.pyz --install-game
 ```
 
 
 启动游戏：
 ```shell
-	./MCLauncher.pyz 
+	# 首次启动
+	python3 main.py --username vii
+	或者 python3 MCLahuncher.pyz --username vii
+
+	# 之后启动
+	python3 mian.py
 	或者 python3 MCLahuncher.pyz
 ```
+
