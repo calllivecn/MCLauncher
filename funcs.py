@@ -27,7 +27,7 @@ import json
 import socket
 from os import path
 from hashlib import md5, sha1
-from urllib.request import urlopen
+from urllib import request
 from urllib.parse import urlsplit
 from functools import partial
 from threading import Thread
@@ -79,7 +79,7 @@ def fillpath(realpath):
 
 def wget(url, savepath):
     block = 1<<14 # 16k
-    response = urlopen(url)
+    response = request.urlopen(url)
 
     sha = sha1()
     
@@ -120,6 +120,8 @@ class Downloader:
         self.taskqueue.put(task)
             
     def func(self):
+
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
         
         while True:
 
@@ -127,7 +129,8 @@ class Downloader:
 
             block = 1<<14 # 16k
             try:
-                response = urlopen(url, timeout=15)
+                req = request.Request(url, headers=headers)
+                response = request.urlopen(req, timeout=15)
     
                 with open(savepath, "wb") as f:
                     for data in iter(partial(response.read, block), b""):
