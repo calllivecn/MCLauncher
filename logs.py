@@ -9,6 +9,7 @@ __all__ = ["logger", "setLevel"]
 
 import sys
 import logging
+from os import path
 
 logger = logging.getLogger("MCL")
 
@@ -23,7 +24,9 @@ stream.setFormatter(fmt)
 
 logger.addHandler(stream)
 
-logfilename = sys.argv[0].replace("py", "logs")
+logfilename, ext = path.splitext(sys.argv[0])
+
+logfilename = logfilename + ".logs"
 
 logsname = logging.FileHandler(logfilename, "a")
 logsname.setFormatter(fmt)

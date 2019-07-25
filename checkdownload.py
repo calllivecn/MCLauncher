@@ -113,8 +113,11 @@ def install_game():
     dler.join()
         
 
-if __name__ == "__main__":
+def ext_main(level):
+    setLevel(level)
+    install_game()
 
+def main():
     from argparse import ArgumentParser
 
     parse = ArgumentParser(description='MC下载器',usage='%(prog)s [-v]',epilog='http://www.none.org')
@@ -127,3 +130,5 @@ if __name__ == "__main__":
 
     install_game()
 
+if __name__ == "__main__":
+    main()

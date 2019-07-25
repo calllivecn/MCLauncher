@@ -258,10 +258,11 @@ class MCL:
 
             elif isinstance(value, str):
                 if value.startswith("${") and value.endswith("}"):
-                    mc_args += "{}".format(value.lstrip("$")) + " "
+                    value = value.replace('${', '"{').replace('}', '}"')
+                    mc_args += value + " "
                 else:
                     mc_args += value + " "
-                
+
                 continue
 
             else:

@@ -138,6 +138,7 @@ class Downloader:
                 self.count -= 1
                 continue
 
+            response.close()
             self.taskqueue.task_done()
             logger.info("下载 {} 完成。".format(savepath))
             self.count -= 1

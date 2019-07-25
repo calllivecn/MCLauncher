@@ -17,6 +17,8 @@ from logs import logger
 def parse_args():
     parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [-u|--username]',epilog='http://www.none.org')
 
+    parse.add_argument("--install-game", action="store_true", help="安装游戏")
+
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
 
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
@@ -27,6 +29,12 @@ def parse_args():
 def main():
 
     args = parse_args()
+    #print("args:", args, args.install_game);sys.exit(0)
+
+    if args.install_game:
+        from checkdownload import ext_main
+        ext_main(args.verbose)
+        sys.exit(0)
 
     logger.setLevel(args.verbose)
 
