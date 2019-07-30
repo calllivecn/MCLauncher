@@ -140,15 +140,14 @@ class Downloader:
                         f.write(data)
             except socket.timeout:
                 logger.warn("下载超时：{}".format(url))
-                self.taskqueue.task_done()
-                self.count -= 1
                 continue
 
-            response.close()
-            self.taskqueue.task_done()
-            logger.info("下载 {} 完成。".format(savepath))
-            self.count -= 1
-            logger.debug("当前队列线程数：{}".format(self.count))
+            finally:
+                response.close()
+                self.taskqueue.task_done()
+                self.count -= 1
+                logger.info("下载 {} 完成。".format(savepath))
+                logger.debug("当前队列线程数：{}".format(self.count))
 
 
     def join(self):
