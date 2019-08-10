@@ -133,13 +133,16 @@ class Downloader:
             block = 1<<14 # 16k
             try:
                 req = request.Request(url, headers=headers)
-                response = request.urlopen(req, timeout=15)
+                response = request.urlopen(req, timeout=60)
     
                 with open(savepath, "wb") as f:
                     for data in iter(partial(response.read, block), b""):
                         f.write(data)
             except socket.timeout:
                 logger.warn("下载超时：{}".format(url))
+                os.remove(savepath)
+                self.count += 1
+                self.taskqueue.put((url, savepath))
                 continue
 
             finally:

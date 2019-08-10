@@ -69,8 +69,7 @@ class MCL:
 
         self.get_jvm_args()
 
-        #jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn128M "
-        jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy "
+        jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn256M "
 
         # 从${version}.json里解析
         self.get_minecraft_args()
