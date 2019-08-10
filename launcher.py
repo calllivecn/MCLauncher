@@ -11,7 +11,7 @@ from os import path
 from shutil import rmtree
 from hashlib import md5
 from zipfile import ZipFile
-from subprocess import check_call, call
+from subprocess import check_call, call, CalledProcessError
 from platform import system
 
 
@@ -69,16 +69,21 @@ class MCL:
 
         self.get_jvm_args()
 
-        jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn128M "
+        #jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn128M "
+        jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy "
 
         # 从${version}.json里解析
         self.get_minecraft_args()
 
-        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + ":" + self.client_jar + '" ' + self.mainclass + " " + self.minecraft_args
+        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + os.pathsep + self.client_jar + '" ' + self.mainclass + " " + self.minecraft_args
 
     def launcher(self):
         logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
-        check_call(self.launcher_cmd, shell=True)
+        try:
+            check_call(self.launcher_cmd, shell=True)
+        except CalledProcessError as e:
+            logger.error(e)
+            sys.exit(1)
 
         self.clear_natives()
 
