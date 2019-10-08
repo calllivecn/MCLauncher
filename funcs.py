@@ -144,12 +144,17 @@ class Downloader:
                 self.count += 1
                 self.taskqueue.put((url, savepath))
                 continue
+            except Exception as e:
+                logger.error("出错：{}".format(e))
+                logger.error("出错url：{}".format(url))
+                self.count += 1
+                self.taskqueue.put((url, savepath))
 
             finally:
                 response.close()
                 self.taskqueue.task_done()
                 self.count -= 1
-                logger.info("下载 {} 完成。".format(savepath))
+                logger.info("下载完成：{}".format(savepath))
                 logger.debug("当前队列线程数：{}".format(self.count))
 
 
@@ -176,7 +181,7 @@ def get_resources(mc_obj, savepath):
 
     url = RESOURCES_OBJECTS + hash_value[0:2] + "/" + hash_value
 
-    logger.info("开始下载 {} 。。。".format(savepath))
+    logger.info("开始下载：{} ...".format(savepath))
     dler.submit((url, savepath))
 
 def get_jars(jar_obj, savepath):
@@ -184,7 +189,7 @@ def get_jars(jar_obj, savepath):
     url = jar_obj.get("url")
     size = jar_obj.get("size")
 
-    logger.info("开始下载 {} 。。。".format(savepath))
+    logger.info("开始下载：{} ...".format(savepath))
     dler.submit((url, savepath))
         
 
@@ -282,6 +287,4 @@ def install_select(vm):
 if __name__ == "__main__":
 
     print("sha = ", wget(sys.argv[1], sys.argv[2]))
-    
-
 
