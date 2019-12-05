@@ -17,3 +17,9 @@ jobs:
       run: |
         bash build2pyz.sh
         ls -lh
+
+    - uses: actions/upload-artifact@v1
+    - name: MCLaunhcer.pyz
+      with:
+          path: MCLauncher.pyz
+
