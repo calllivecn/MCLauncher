@@ -60,6 +60,7 @@ class McDirStruct:
         self.libraries = self.gameDir + os.sep + "libraries"
         
         self.versions = self.gameDir + os.sep + "versions"
+
         
 
     # 选择 version_id 后才能 self.client_jar self.client_json self.assetindex
@@ -83,6 +84,9 @@ class McDirStruct:
                 self.client_jar = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".jar"
 
                 self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
+
+                self.server_jar = self.gameDir + os.sep + "server-" + self.version_id + ".jar"
+            
         else:
             
             self.version_id = version_id
@@ -90,6 +94,8 @@ class McDirStruct:
             self.client_jar = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".jar"
 
             self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
+
+            self.server_jar = self.gameDir + os.sep + "server-" + self.version_id + ".jar"
 
         
     def mk_dir_struct(self, version_id):
@@ -99,5 +105,4 @@ class McDirStruct:
             try:
                 os.mkdir(d)
             except FileExistsError:
-                continue
-
+                continue 

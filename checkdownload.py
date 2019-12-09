@@ -41,6 +41,7 @@ def install_game():
 
     downloads = versions_json.get("downloads")
     
+    # 开始下载 client.jar
     client = downloads.get("client")
     fillpath(mds.client_jar)
     logger.info("下载 client: {}".format(mds.client_jar))
@@ -49,6 +50,18 @@ def install_game():
         logger.info("{} 已存在 ... 跳过".format(mds.client_jar))
     else:
         wget(client.get("url"), mds.client_jar)
+
+    # 开始下载 server.jar
+    server = downloads.get("server")
+    fillpath(mds.server_jar)
+    logger.info("下载 server: {}".format(mds.server_jar))
+
+    if path.exists(mds.server_jar):
+        logger.info("{} 已存在 ... 跳过".format(mds.server_jar))
+    else:
+        wget(server.get("url"), mds.server_jar)
+
+
 
     logger.info("开始下载jars")
     libraries = versions_json.get("libraries")
