@@ -50,6 +50,7 @@ class McDirStruct:
 
         self.absGameDir = path.dirname(path.abspath(sys.argv[0]))
         self.gameDir = self.absGameDir + os.sep + minecraft
+        self.serverDir = self.absGameDir + os.sep + "server"
 
         self.Duser_home = self.absGameDir
 
@@ -85,7 +86,7 @@ class McDirStruct:
 
                 self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
 
-                self.server_jar = self.absGameDir + os.sep + "server" + os.sep + "server-" + self.version_id + ".jar"
+                self.server_jar = self.serverDir + os.sep + "server-" + self.version_id + ".jar"
             
         else:
             
@@ -95,12 +96,12 @@ class McDirStruct:
 
             self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
 
-            self.server_jar = self.gameDir + os.sep + "server-" + self.version_id + ".jar"
+            self.server_jar = self.serverDir + os.sep + "server-" + self.version_id + ".jar"
 
         
     def mk_dir_struct(self, version_id):
         
-        for d in [self.gameDir, self.assets, self.indexes, self.objects, self.libraries, self.versions, self.version_id]:
+        for d in [self.gameDir, self.serverDir, self.assets, self.indexes, self.objects, self.libraries, self.versions, self.version_id]:
         
             try:
                 os.mkdir(d)
