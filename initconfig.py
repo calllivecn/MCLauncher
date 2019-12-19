@@ -85,7 +85,7 @@ class McDirStruct:
 
                 self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
 
-                self.server_jar = self.gameDir + os.sep + "server-" + self.version_id + ".jar"
+                self.server_jar = self.absGameDir + os.sep + "server" + os.sep + "server-" + self.version_id + ".jar"
             
         else:
             
