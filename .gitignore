@@ -16,3 +16,5 @@ logs/
 *.png
 MCLauncher.pyz
 *.logs
+*.xz
+*.sha256
