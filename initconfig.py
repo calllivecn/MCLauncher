@@ -28,7 +28,7 @@ from logs import logger
 
 
 LAUNCHER = "MCL"
-LAUNCHER_VERSION = "v1.0"
+LAUNCHER_VERSION = "v1.2"
 
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
