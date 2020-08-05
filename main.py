@@ -12,12 +12,17 @@ from launcher import MCL
 from initconfig import *
 from funcs import *
 from logs import logger
+import checkdownload
 
 
 def parse_args():
     parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [optional]',epilog='https://github.com/calllivecn/MCLauncher')
 
     parse.add_argument("--install-game", action="store_true", help="安装游戏")
+
+    parse.add_argument("--check-game", action="store_true", help="检查游戏")
+
+    parse.add_argument("--export-game", action="store", help="导出指定游戏版本到新目录")
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
 
@@ -29,19 +34,34 @@ def parse_args():
 def main():
 
     args = parse_args()
-    #print("args:", args, args.install_game);sys.exit(0)
 
-    if args.install_game:
-        from checkdownload import ext_main
-
-        if args.verbose <= 1:
-            ext_main(1)
-        else:
-            ext_main(args.verbose)
-
+    if args.verbose >= 3:
+        print("args:", args)
         sys.exit(0)
 
     logger.setLevel(args.verbose)
+
+    if args.install_game:
+        if args.verbose <= 1:
+            logger.setLevel(1)
+
+        checkdownload.install_game()
+        sys.exit(0)
+    
+    if args.check_game:
+        if args.verbose <= 1:
+            logger.setLevel(1)
+
+        checkdownload.check_game()
+        sys.exit(0)
+    
+    if args.export_game:
+        checkdownload.check_game(args.export_game)
+        sys.exit(0)
+    else:
+        print("需要指定一个目录")
+        sys.exit(1)
+
 
     mds = McDirStruct()
     mds.version_id()
