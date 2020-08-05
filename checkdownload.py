@@ -74,7 +74,7 @@ def install_game():
         if artifact is not None:
 
             urlpath = getcp(artifact)
-            realpath = mds.libraries + urlpath
+            realpath = joinpath(mds.libraries, urlpath)
 
             fillpath(realpath)
             if path.exists(realpath):
@@ -88,7 +88,7 @@ def install_game():
             for value in natives.values():
 
                 urlpath = getcp(value)
-                realpath = mds.libraries + urlpath
+                realpath = joinpath(mds.libraries, urlpath)
 
                 fillpath(realpath)
                 if path.exists(realpath):
@@ -102,7 +102,7 @@ def install_game():
     
     assetindex_json = assetindex_id + ".json"
 
-    assetindex_realpath = mds.indexes + os.sep + assetindex_json
+    assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
     if path.exists(assetindex_realpath):
         logger.info("{} 已存在。".format(assetindex_realpath))
@@ -115,7 +115,7 @@ def install_game():
 
     for v in objects.values():
         hash_value = v.get("hash")
-        savepath = mds.objects + os.sep + hash_value[0:2] + os.sep + hash_value
+        savepath = joinpath(mds.objects, hash_value[0:2], hash_value)
         fillpath(savepath)
         if path.exists(savepath):
             logger.info("{} 已存在。".format(savepath))

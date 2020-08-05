@@ -103,7 +103,7 @@ class MCL:
 
     def __get_Djava_library_path(self):
         if self.Djava_library_path == "":
-            self.Djava_library_path = self.versions + os.sep + self.version_id + '-natives'
+            self.Djava_library_path = joinpath(self.versions, self.version_id + '-natives')
         logger.debug("Djava_libaray_path: {}".format(self.Djava_library_path))
     
 
@@ -195,7 +195,7 @@ class MCL:
                                 if native_dll is not None:
 
                                     jar_dll_realpath = self.libraries + getcp(native_dll)
-                                    self.natives_dll_path = self.versions + os.sep + self.version_id + os.sep + self.version_id + "-natives"
+                                    self.natives_dll_path = joinpath(self.versions, self.version_id, self.version_id + "-natives")
 
                                     if path.isdir(self.natives_dll_path):
                                         if self.Djava_library_path == '':
@@ -377,7 +377,7 @@ class MCL:
                 jvms_for(option_dict.get("value"))
 
         
-        tmp_dict = {'natives_directory': self.versions + os.sep + self.version_id + os.sep + self.version_id + '-natives',
+        tmp_dict = {'natives_directory': joinpath(self.versions, self.version_id, self.version_id + '-natives'),
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
         'classpath' : self.classpath
