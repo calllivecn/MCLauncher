@@ -56,11 +56,8 @@ def main():
         sys.exit(0)
     
     if args.export_game:
-        checkdownload.check_game(args.export_game)
+        checkdownload.export_game(args.export_game)
         sys.exit(0)
-    else:
-        print("需要指定一个目录")
-        sys.exit(1)
 
 
     mds = McDirStruct()

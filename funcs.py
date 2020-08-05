@@ -13,6 +13,7 @@ __all__ = [
             "getcp",
             "wget",
             "fillpath",
+            "joinpath",
             "get_resources",
             "get_jars",
             "dler",
@@ -36,7 +37,6 @@ from threading import Thread
 from queue import Queue
 
 
-from initconfig import *
 from logs import logger
 
 
@@ -52,7 +52,7 @@ def get_json(f):
     return data
 
 def set_json(obj,f):
-    with open(GAME_CONFIG,'w') as fp:
+    with open(f,'w') as fp:
          data = json.dump(obj, fp, ensure_ascii=False, indent=4)
     return data
 
@@ -78,6 +78,9 @@ def fillpath(realpath):
     if not path.isdir(dirpath):
         os.makedirs(dirpath)
 
+
+def joinpath(*args):
+    return os.sep.join(args)
 
 def wget(url, savepath):
     block = 1<<14 # 16k
@@ -182,6 +185,7 @@ def diffsha1(sha, filename):
     if path.exists(filename):
         fn_sha = sha1sum(filename)
     else:
+        logger.warn("{} 不在 ...".format(filename))
         return False
 
     if sha == fn_sha:
@@ -189,11 +193,12 @@ def diffsha1(sha, filename):
     else:
         return False
 
+
 def get_resources(mc_obj, savepath):
     hash_value = mc_obj.get("hash")
     size = mc_obj.get("size")
 
-    url = RESOURCES_OBJECTS + hash_value[0:2] + "/" + hash_value
+    url = joinpath(savepath, hash_value[0:2], hash_value)
 
     logger.info("开始下载：{} ...".format(savepath))
     dler.submit((url, savepath))
@@ -298,7 +303,6 @@ def install_select(vm):
 
 def select_local(versions_path):
     vs = os.listdir(versions_path)
-    print(vs)
     l_len = len(vs)
     
     for i in range(l_len):

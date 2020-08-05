@@ -8,6 +8,7 @@ __all__ = [
             ]
 
 import os
+import shutil
 from os import path
 from urllib.request import urlopen
 
@@ -124,11 +125,6 @@ def install_game():
     dler.join()
 
 
-def export_game(directory, f=False):
-    if f:
-        shutil.copy2()
-
-
 def check_game(export_target=None):
 
     mds = McDirStruct()
@@ -136,8 +132,8 @@ def check_game(export_target=None):
     version_id = select_local(mds.versions)
 
     mds.version_id(version_id)
-    fillpath(mds.client_json)
 
+    fillpath(mds.client_json)
     if path.exists(mds.client_json):
         logger.info("{} checking ... ".format(mds.client_json))
     else:
@@ -208,7 +204,7 @@ def check_game(export_target=None):
     
     assetindex_json = assetindex_id + ".json"
 
-    assetindex_realpath = mds.indexes + os.sep + assetindex_json
+    assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
     if path.exists(assetindex_realpath):
         logger.info("{} 已存在。".format(assetindex_realpath))
@@ -221,7 +217,7 @@ def check_game(export_target=None):
 
     for v in objects.values():
         hash_value = v.get("hash")
-        savepath = mds.objects + os.sep + hash_value[0:2] + os.sep + hash_value
+        savepath = joinpath(mds.objects, hash_value[0:2], hash_value)
         fillpath(savepath)
         if diffsha1(hash_value, savepath):
             logger.info("{} ... ok".format(savepath))
@@ -231,6 +227,93 @@ def check_game(export_target=None):
 
     dler.join()
 
+
+def copy(fn1, fn2):
+    fillpath(fn2)
+    shutil.copy(fn1, fn2)
+
+
+def export_game(directory):
+
+    mds = McDirStruct()
+
+    mds_new = McDirStruct(directory)
+
+    version_id = select_local(mds.versions)
+
+    mds.version_id(version_id)
+    mds_new.version_id(version_id)
+
+    logger.info("export: {}".format(mds_new.client_json))
+    copy(mds.client_json, mds_new.client_json)
+
+    versions_json = get_json(mds.client_json)
+    downloads = versions_json.get("downloads")
+    
+    # 开始下载 client.jar
+    client = downloads.get("client")
+    logger.info("export: {}".format(mds_new.client_jar))
+    copy(mds.client_jar, mds_new.client_jar)
+
+    # 开始下载 server.jar
+    server = downloads.get("server")
+    logger.info("export: {}".format(mds_new.server_jar))
+    copy(mds.server_jar, mds_new.server_jar)
+
+
+    logger.info("开始导出jars")
+    libraries = versions_json.get("libraries")
+    for lib in libraries:
+        dl = lib.get("downloads")
+        artifact = dl.get("artifact")
+    
+        if artifact is not None:
+
+            urlpath = getcp(artifact)
+            realpath = joinpath(mds.libraries, urlpath)
+            realpath_new = joinpath(mds_new.libraries, urlpath)
+
+            logger.info("export: {}".format(realpath_new))
+            copy(realpath, realpath_new)
+
+        # 如需要，下载 natives 文件
+        natives = dl.get("classifiers")
+        if natives is not None:
+            for value in natives.values():
+
+                urlpath = getcp(value)
+                realpath = joinpath(mds.libraries, urlpath)
+                realpath_new = joinpath(mds_new.libraries + urlpath)
+
+                logger.info("export: {}".format(realpath_new))
+                copy(realpath, realpath_new)
+                
+
+    logger.info("开始导出 asssetIndex.json 资源")
+    assetindex = versions_json.get("assetIndex")
+    assetindex_id = assetindex.get("id")
+    
+    assetindex_json = assetindex_id + ".json"
+
+    assetindex_realpath = joinpath(mds.indexes, assetindex_json)
+    assetindex_realpath_new = joinpath(mds_new.indexes, assetindex_json)
+
+    logger.info("export: {}".format(assetindex_realpath_new))
+    copy(assetindex_realpath, assetindex_realpath_new)
+                
+
+    logger.info("开始导出 objects 资源")
+    resources = get_json(assetindex_realpath)
+    objects = resources.get("objects")
+
+    for v in objects.values():
+        hash_value = v.get("hash")
+        savepath = joinpath(mds.objects, hash_value[0:2], hash_value)
+        savepath_new = joinpath(mds_new.objects, hash_value[0:2], hash_value)
+
+        logger.info("export: {}".format(savepath_new))
+        copy(savepath, savepath_new)
+                
 
 
 def main():

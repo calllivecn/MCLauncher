@@ -23,6 +23,7 @@ from os import path
 from platform import system #, process
 
 
+from funcs import joinpath
 from logs import logger
 
 
@@ -46,21 +47,29 @@ class McDirStruct:
     3. 使用 mds ...
     """
 
-    def __init__(self, minecraft=".minecraft"):
+    def __init__(self, minecraft=None):
 
-        self.absGameDir = path.dirname(path.abspath(sys.argv[0]))
-        self.gameDir = self.absGameDir + os.sep + minecraft
-        self.serverDir = self.absGameDir + os.sep + "server"
+        if minecraft is None:
+            self.absGameDir = os.getcwd()
+        else:
+            if path.isdir(minecraft):
+                self.absGameDir = path.abspath(minecraft)
+            else:
+                print("{} 目录不存在！".format(minecraft))
+                sys.exit(1)
+        
+        self.gameDir = joinpath(self.absGameDir, ".minecraft")
+        self.serverDir = joinpath(self.absGameDir, "server")
 
         self.Duser_home = self.absGameDir
 
-        self.assets = self.gameDir + os.sep + "assets"
-        self.indexes = self.assets + os.sep + "indexes"
-        self.objects = self.assets + os.sep + "objects"
+        self.assets = joinpath(self.gameDir, "assets")
+        self.indexes = joinpath(self.assets, "indexes")
+        self.objects = joinpath(self.assets, "objects")
 
-        self.libraries = self.gameDir + os.sep + "libraries"
+        self.libraries = joinpath(self.gameDir, "libraries")
         
-        self.versions = self.gameDir + os.sep + "versions"
+        self.versions = joinpath(self.gameDir, "versions")
 
         
 
@@ -82,21 +91,21 @@ class McDirStruct:
                 self.version_id = vers[0]
                 logger.info("选择版本：{}".format(self.version_id))
 
-                self.client_jar = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".jar"
+                self.client_jar = joinpath(self.versions, self.version_id, self.version_id + ".jar")
 
-                self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
+                self.client_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
 
-                self.server_jar = self.serverDir + os.sep + "server-" + self.version_id + ".jar"
+                self.server_jar = joinpath(self.serverDir, "server-" + self.version_id + ".jar")
             
         else:
             
             self.version_id = version_id
 
-            self.client_jar = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".jar"
+            self.client_jar = joinpath(self.versions, self.version_id, self.version_id + ".jar")
 
-            self.client_json = self.versions + os.sep + self.version_id + os.sep + self.version_id + ".json"
+            self.client_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
 
-            self.server_jar = self.serverDir + os.sep + "server-" + self.version_id + ".jar"
+            self.server_jar = joinpath(self.serverDir, "server-" + self.version_id + ".jar")
 
         
     def mk_dir_struct(self, version_id):
