@@ -16,8 +16,10 @@ __all__ = [
             "get_resources",
             "get_jars",
             "dler",
-            "sha1",
+            "sha1sum",
+            "diffsha1",
             "install_select",
+            "select_local",
             ]
 
 
@@ -81,6 +83,7 @@ def wget(url, savepath):
     block = 1<<14 # 16k
 
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
     req = request.Request(url, headers=headers)
     response = request.urlopen(req, timeout=15)
 
@@ -168,12 +171,23 @@ dler = Downloader()
 
 def sha1sum(filename):
     sha = sha1()
-    with open(filename) as f:
+    with open(filename, "rb") as f:
         for data in iter(partial(f.read, BLOCK), b""):
             sha.update(data)
     
     return sha.hexdigest()
 
+
+def diffsha1(sha, filename):
+    if path.exists(filename):
+        fn_sha = sha1sum(filename)
+    else:
+        return False
+
+    if sha == fn_sha:
+        return True
+    else:
+        return False
 
 def get_resources(mc_obj, savepath):
     hash_value = mc_obj.get("hash")
@@ -282,6 +296,35 @@ def install_select(vm):
             return snapshot_list[id_]
 
 
+def select_local(versions_path):
+    vs = os.listdir(versions_path)
+    print(vs)
+    l_len = len(vs)
+    
+    for i in range(l_len):
+        print("{}: {}".format(i, vs[i]))
+    
+    while True:
+        print("选择一个游戏版本，输入q退出")
+        user_select = input("请选择版本序号 0-{}: [已选择:{}] ".format(l_len - 1, l_len - 1))
+
+        if user_select == "":
+            return vs[l_len - 1]
+
+        if user_select == "q":
+            sys.exit(0)
+
+        try:
+            number = int(user_select)
+        except ValueError:
+            print("请正确输入！")
+            continue
+
+        if l_len < number < 0:
+            print("请正确输入！")
+            continue
+
+        return vs[number]
 
 # test
 if __name__ == "__main__":
