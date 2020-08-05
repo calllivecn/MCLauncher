@@ -26,6 +26,8 @@ def parse_args():
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
 
+    parse.add_argument("--game-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
+
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
     
     return parse.parse_args()
@@ -61,22 +63,42 @@ def main():
 
 
     mds = McDirStruct()
-    mds.version_id()
-
     os.chdir(mds.Duser_home)
 
     if path.exists(GAME_CONFIG):
+
+        mds.version_id()
+        
         user_data = get_json(GAME_CONFIG)
-        username = user_data.get('username')
-        uuid = user_data.get('uuid')
+
+        if args.game_version:
+            currentversion = select_local(mds.versions)
+            user_data["currentversion"] = currentversion
+            set_json(user_data, GAME_CONFIG)
+
+        try:
+            username = user_data['username']
+            uuid = user_data['uuid']
+            version = user_data['currentversion']
+        except KeyError:
+            logger.warning("{} 配置文件格式错误! 请重新启动".format(GAME_CONFIG))
+            os.remove(GAME_CONFIG)
+            sys.exit(1)
+
     else:
+
         if args.username is None:
             logger.error("首次启动需要设置一个游戏用户名！")
             sys.exit(1)
-
+        
         username = args.username
         uuid = get_uuid(username)
-        user_data = {'username' : username ,'uuid' : uuid}
+
+        currentversion = select_local(mds.versions)
+
+        mds.version_id(currentversion)
+
+        user_data = {'username' : username ,'uuid' : uuid, 'currentversion': currentversion}
         set_json(user_data, GAME_CONFIG)
 
     mclauncher = MCL(username, uuid, mds)

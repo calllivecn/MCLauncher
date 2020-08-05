@@ -7,11 +7,13 @@
 
 import os
 import sys
+import pprint
+import atexit
 from os import path
 from shutil import rmtree
 from hashlib import md5
 from zipfile import ZipFile
-from subprocess import check_call, call, CalledProcessError
+from subprocess import run, CalledProcessError
 from platform import system
 
 
@@ -69,22 +71,23 @@ class MCL:
 
         self.get_jvm_args()
 
-        jvm_other_args=" -XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn256M "
+        jvm_other_args =["-XX:+UseConcMarkSweepGC", "-XX:-UseAdaptiveSizePolicy", "-Xmn256M"]
 
         # 从${version}.json里解析
         self.get_minecraft_args()
 
-        self.launcher_cmd = "java" + jvm_other_args + self.jvm_args + os.pathsep + self.client_jar + '" ' + self.mainclass + " " + self.minecraft_args
+        self.launcher_cmd = ["java"] + jvm_other_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
     def launcher(self):
-        logger.debug("MC Launcher CMD：{}".format(self.launcher_cmd))
+        # 注册清理函数
+        atexit.register(self.clear_natives)
+
+        logger.debug("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
         try:
-            check_call(self.launcher_cmd, shell=True)
+            run(self.launcher_cmd, check=True)
         except CalledProcessError as e:
             logger.error(e)
             sys.exit(1)
-
-        self.clear_natives()
 
     
     def __get_gameDir(self):
@@ -215,9 +218,10 @@ class MCL:
             if path.exists(cp_class):
                 cp += cp_class + path.pathsep
             else:
-                logger.warn('不存在：{}'.format(cp_class))
+                logger.warning('不存在：{}'.format(cp_class))
 
-        self.classpath = cp.rstrip(path.pathsep)
+        #self.classpath = cp.rstrip(path.pathsep)
+        self.classpath = cp
         logger.debug("self.classpath -- >\n{}".format(self.classpath))
 
     
@@ -229,8 +233,8 @@ class MCL:
             game_args = self.mc_json.get('arguments')
             value_list = game_args.get('game')
         except KeyError as e:
-            logger.error("解析MC json文件出错")
-            logger.error("解析argments 或 game时错误")
+            logger.error("解析 MC json 文件出错")
+            logger.error("解析 argments 或 game 时错误")
             sys.exit(1)
         
         allow = True
@@ -262,7 +266,7 @@ class MCL:
 
             elif isinstance(value, str):
                 if value.startswith("${") and value.endswith("}"):
-                    value = value.replace('${', '"{').replace('}', '}"')
+                    value = value.replace('${', '{').replace('}', '}')
                     mc_args += value + " "
                 else:
                     mc_args += value + " "
@@ -270,13 +274,13 @@ class MCL:
                 continue
 
             else:
-                logger.warn("未知minecraft 参数：{} 尝试忽略。".format(value))
+                logger.warning("未知 minecraft 参数：{} 尝试忽略。".format(value))
                 continue
 
             # # #############
             
             if allow:
-                logger.debug("启用minecraft 参数：{}。".format(value))
+                logger.debug("启用 minecraft 参数：{}。".format(value))
                 for option in value.get('value'):
 
                     if option.startswith("${") and option.endswith("}"):
@@ -284,7 +288,7 @@ class MCL:
                     else:
                         mc_args += option + " "
             else:
-                logger.debug("不启用minecraft 参数：{}。".format(value))
+                logger.debug("不启用 minecraft 参数：{}。".format(value))
                 continue
 
         minecraft_args_build_dict = {'auth_player_name': self.username,
@@ -306,26 +310,27 @@ class MCL:
         """
 
         self.minecraft_args = mc_args.format(**minecraft_args_build_dict)
+        self.minecraft_args = self.minecraft_args.split()
         logger.debug("mc 启动参数：{}".format(self.minecraft_args))
 
 
     def get_jvm_args(self):
         
-        jvms = ''
+        jvms = ""
 
         def jvms_for(value):
 
             nonlocal jvms
 
             if isinstance(value, str):
-                value = value.replace('${','"{') 
-                jvms += value.replace('}', '}"') + " "
+                value = value.replace('${','{') 
+                jvms += value.replace('}', '}') + " "
 
             elif isinstance(value, list):
 
                 for jvm_arg in option_dict.get("value"):
-                    jvm_arg = jvm_arg.replace('${', '"{')
-                    jvms += jvm_arg.replace('}','}"') + " "
+                    jvm_arg = jvm_arg.replace('${', '{')
+                    jvms += jvm_arg.replace('}','}') + ""
         
         jvm_list = self.mc_json.get("arguments").get("jvm")
 
@@ -380,10 +385,12 @@ class MCL:
         tmp_dict = {'natives_directory': joinpath(self.versions, self.version_id, self.version_id + '-natives'),
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
-        'classpath' : self.classpath
+        'classpath' : self.classpath + self.client_jar
         }
         logger.debug("jvm 参数(解析前)：{}".format(jvms))
-        self.jvm_args = jvms.format(**tmp_dict).rstrip(' ').rstrip('"')
+        logger.debug("jvm 参数(解析前) tmp_dirct：{}".format(pprint.pformat(tmp_dict)))
+        self.jvm_args = jvms.format(**tmp_dict)
+        self.jvm_args = self.jvm_args.split()
         logger.debug("jvm 参数：{}".format(self.jvm_args))
 
 

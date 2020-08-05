@@ -185,7 +185,7 @@ def diffsha1(sha, filename):
     if path.exists(filename):
         fn_sha = sha1sum(filename)
     else:
-        logger.warn("{} 不在 ...".format(filename))
+        logger.warning("{} 不在 ...".format(filename))
         return False
 
     if sha == fn_sha:
