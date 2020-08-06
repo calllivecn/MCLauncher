@@ -229,8 +229,11 @@ def check_game(export_target=None):
 
 
 def copy(fn1, fn2):
-    fillpath(fn2)
-    shutil.copy(fn1, fn2)
+    if path.exists(fn2):
+        logger.info("{} 已存在 ...".format(fn2))
+    else:
+        fillpath(fn2)
+        shutil.copy(fn1, fn2)
 
 
 def export_game(directory):
