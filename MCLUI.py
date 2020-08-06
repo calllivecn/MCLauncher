@@ -7,6 +7,7 @@
 import os
 from os import path
 import tkinter as tk
+from tkinter import ttk
 
 def get_win_location(win):#,H=200, W=400):
     width = win.winfo_screenwidth()
@@ -59,7 +60,7 @@ def select_version():
 
     version = tk.StringVar(value=versions)
 
-    scrollbar3 = tk.Scrollbar(select_win)
+    scrollbar3 = ttk.Scrollbar(select_win)
     scrollbar3.pack(side=tk.RIGHT,fill=tk.Y)
 
     listbox = tk.Listbox(select_win,height=5,listvariable=version,selectmode=tk.BROWSE,yscrollcommand=scrollbar3.set)
@@ -68,7 +69,7 @@ def select_version():
 
     scrollbar3.config(command=listbox.yview)
 
-    button = tk.Button(select_win,text="确定",command=lambda : getversion(listbox, select_win))
+    button = ttk.Button(select_win,text="确定",command=lambda : getversion(listbox, select_win))
     button.pack(anchor="se")
     button.bind("<Return>",func=lambda event: getversion(listbox, select_win))
 
@@ -78,37 +79,37 @@ win.geometry(get_win_location(win))#("400x200")
 
 win.title("MCL v1.0")
 
-frame1 = tk.Frame(win)
+frame1 = ttk.Frame(win)
 frame1.pack(side="top",fill="x")
 
-label1 = tk.Label(frame1,text="用户名:")
+label1 = ttk.Label(frame1,text="用户名:")
 label1.pack(side="left")
 
 
 username = tk.StringVar(value="天天MC")
-entry1 = tk.Entry(frame1,textvariable=username)
+entry1 = ttk.Entry(frame1,textvariable=username)
 entry1.pack(side="left",fill="x",expand="yes")
 
-frame2 = tk.Frame(win)
+frame2 = ttk.Frame(win)
 frame2.pack(side="top",fill="x")
 
-label2 = tk.Label(frame2,text="密  码:")
+label2 = ttk.Label(frame2,text="密  码:")
 label2.pack(side="left")
 
-entry2 = tk.Entry(frame2,show="*")
+entry2 = ttk.Entry(frame2,show="*")
 entry2.pack(side="left",fill="x",expand="yes")
 
-frame3 = tk.Frame(win)
+frame3 = ttk.Frame(win)
 frame3.pack(side="top",fill="x")
 
-label3 = tk.Label(frame3,text="版本:")
+label3 = ttk.Label(frame3,text="版本:")
 label3.pack(side="left")
 
 version = tk.StringVar(value="默认")
-label4 = tk.Label(frame3,textvariable=version)
+label4 = ttk.Label(frame3,textvariable=version)
 label4.pack(side="left")
 
-button2 = tk.Button(frame3, text="选择版本", command=select_version)
+button2 = ttk.Button(frame3, text="选择版本", command=select_version)
 button2.bind("<Return>",func=lambda event: select_version())
 button2.pack(side="right")
 
@@ -119,13 +120,13 @@ button2.pack(side="right")
 
 # for i in range(14):
 #     listbox3.insert(tk.END,i)
-frame4 = tk.Frame(win)
+frame4 = ttk.Frame(win)
 frame4.pack(side="bottom",fill="x")
 
-label5 = tk.Label(frame4, text="Author: calllivecn")
+label5 = ttk.Label(frame4, text="Author: calllivecn")
 label5.pack(side="left")
 
-button1 = tk.Button(frame4,text="启动",command=getuserinfo)
+button1 = ttk.Button(frame4,text="启动",command=getuserinfo)
 button1.bind("<Return>",func=lambda event: getuserinfo())
 button1.pack(side="right")
 
