@@ -244,24 +244,37 @@ def select(l):
 # version_manifest alias vm
 def install_select(vm):
     latest = vm.get("latest")
+    latest_release = latest.get("release")
+    snapshot_stop = True
     versions = vm.get("versions")
 
     #logger.debug("version_manifest: {}".format(versions))
 
-    versions.reverse()
+    #versions.reverse()
     snapshot_list = []
     release_list = []
     for info in versions:
+
+        if info.get("id") == "1.13":
+            break
+
         type_ = info.get("type")
         logger.debug("遍历游戏版本: {}, type: {}".format(info, type_))
-        if type_ == "snapshot":
+        if type_ == "snapshot" and snapshot_stop:
             logger.debug("加入snapshot list:{}".format(info))
             snapshot_list.append(info)
         elif type_ == "release":
+
+            if info.get("id") == latest_release:
+                snapshot_stop = False
+
             logger.debug("加入release list:{}".format(info))
             release_list.append(info)
             snapshot_list.append(info)
 
+
+    snapshot_list.reverse()
+    release_list.reverse()
     release = True
     while True:
         if release:
