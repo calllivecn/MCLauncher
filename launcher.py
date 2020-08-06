@@ -395,12 +395,13 @@ class MCL:
                 continue
 
             if allow:
-                if isinstance(option_dict, list):
-                    jvms += option_dict
-                elif isinstance(option_dict, str):
-                    jvms.append(option_dict.get("value"))
+                value = option_dict.get("value")
+                if isinstance(value, list):
+                    jvms += value
+                elif isinstance(value, str):
+                    jvms.append(value)
                 else:
-                    logger.warning("启用的 jvm 参数， 但不是 list, str。: {}".format(option_dict.get("value")))
+                    logger.warning("启用的 jvm 参数， 但不是 list, str。: {}".format(value))
             else:
                 logger.debug("不启用的 jvm 参数: {}".format(option_dict.get("value")))
 
