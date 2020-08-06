@@ -16,11 +16,11 @@ import checkdownload
 
 
 def parse_args():
-    parse = ArgumentParser(description='一个MC启动器',usage='%(prog)s [optional]',epilog='https://github.com/calllivecn/MCLauncher')
+    parse = ArgumentParser(description='一个MC启动器 {}'.format(LAUNCHER_VERSION), usage='%(prog)s [optional]',epilog='https://github.com/calllivecn/MCLauncher')
 
     parse.add_argument("--install-game", action="store_true", help="安装游戏")
 
-    parse.add_argument("--check-game", action="store_true", help="检查游戏")
+    parse.add_argument("--check-game", action="store_true", help="检查游戏资源完整性")
 
     parse.add_argument("--export-game", action="store", help="导出指定游戏版本到新目录")
 
