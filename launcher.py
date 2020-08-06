@@ -51,10 +51,10 @@ class MCL:
 
         self.version_id = mds.version_id
 
-        Djava_library_path = ''
+        self.Djava_library_path = ''
 
-        jvm_args = ''
-        minecraft_args = []
+        self.jvm_args = []
+        self.minecraft_args = []
         
         self.assets = mds.assets
 
@@ -73,7 +73,7 @@ class MCL:
 
         self.get_jvm_args()
 
-        jvm_other_args =["-XX:+UseConcMarkSweepGC", "-XX:-UseAdaptiveSizePolicy", "-Xmn256M"]
+        jvm_other_args =["-XX:+UseConcMarkSweepGC", "-XX:-UseAdaptiveSizePolicy", "-Xmn512M"]
 
         # 从${version}.json里解析
         self.get_game_args()
@@ -331,7 +331,7 @@ class MCL:
 
     def get_jvm_args(self):
         
-        jvms = ""
+        jvms = []
 
         def jvms_for(value):
 
@@ -389,12 +389,20 @@ class MCL:
                                 allow = True
                         else:
                             allow = False
-            else:
-                jvms_for(option_dict)
+
+            elif isinstance(option_dict, str):
+                jvms.append(option_dict)
                 continue
 
             if allow:
-                jvms_for(option_dict.get("value"))
+                if isinstance(option_dict, list):
+                    jvms += option_dict
+                elif isinstance(option_dict, str):
+                    jvms.append(option_dict.get("value"))
+                else:
+                    logger.warning("启用的 jvm 参数， 但不是 list, str。: {}".format(option_dict.get("value")))
+            else:
+                logger.debug("不启用的 jvm 参数: {}".format(option_dict.get("value")))
 
         
         tmp_dict = {'natives_directory': joinpath(self.versions, self.version_id, self.version_id + '-natives'),
@@ -402,10 +410,39 @@ class MCL:
         'launcher_version' : LAUNCHER_VERSION,
         'classpath' : self.classpath + self.client_jar
         }
-        logger.debug("jvm 参数(解析前)：{}".format(jvms))
-        logger.debug("jvm 参数(解析前) tmp_dict：{}".format(pprint.pformat(tmp_dict)))
-        self.jvm_args = jvms.format(**tmp_dict)
-        self.jvm_args = self.jvm_args.split()
+
+        #logger.debug("jvm 参数(解析前)：{}".format(jvms))
+        #logger.debug("jvm 参数(解析前) tmp_dict：{}".format(pprint.pformat(tmp_dict)))
+        #self.jvm_args = jvms.format(**tmp_dict)
+        #self.jvm_args = self.jvm_args.split()
+
+        for option in jvms:
+            logger.debug("解析 jvm 参数: {}".format(option))
+            if option.startswith("${") and option.endswith("}"):
+                op = option[2:][:-1]
+                if op in tmp_dict:
+                    logger.debug("{} in tmp_dict value: {}".format(op, tmp_dict[op]))
+                    self.jvm_args.append(tmp_dict[op])
+
+            elif option.find("${") and option.endswith("}"):
+                logger.debug("jvm =${{}} 类型参数: {}".format(option))
+
+                index = option.find("${")
+                key = option[index:][2:][:-1]
+
+                if key in tmp_dict:
+                    op = option[:index] + tmp_dict[key]
+                    self.jvm_args.append(op)
+                    logger.debug("添加参数： {}".format(op))
+                else:
+                    logger.warning("没有找到 {} 参数的值。".format(option))
+
+            elif option.startswith("-"):
+                self.jvm_args.append(option)
+
+            else:
+                logger.warning("未知参数：{}".format(option))
+
         logger.debug("jvm 参数：{}".format(self.jvm_args))
 
 
