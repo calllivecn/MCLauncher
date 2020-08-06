@@ -32,11 +32,7 @@ from logs import logger
 
 
 class MCL:
-    Djava_library_path = ''
 
-    jvm_args = ''
-    cp_args = ''
-    minecraft_args = ''
 
     def __init__(self, username, uuid, mds):
         
@@ -54,6 +50,12 @@ class MCL:
         self.versions = mds.versions
 
         self.version_id = mds.version_id
+
+        Djava_library_path = ''
+
+        jvm_args = ''
+        minecraft_args = []
+        
         self.assets = mds.assets
 
         self.__get_gameDir()
@@ -74,7 +76,7 @@ class MCL:
         jvm_other_args =["-XX:+UseConcMarkSweepGC", "-XX:-UseAdaptiveSizePolicy", "-Xmn256M"]
 
         # 从${version}.json里解析
-        self.get_minecraft_args()
+        self.get_game_args()
 
         self.launcher_cmd = ["java"] + jvm_other_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
@@ -225,9 +227,9 @@ class MCL:
         logger.debug("self.classpath -- >\n{}".format(self.classpath))
 
     
-    def get_minecraft_args(self):
+    def get_game_args(self):
 
-        mc_args = ""
+        mc_args = []
         
         try:
             game_args = self.mc_json.get('arguments')
@@ -266,10 +268,12 @@ class MCL:
 
             elif isinstance(value, str):
                 if value.startswith("${") and value.endswith("}"):
-                    value = value.replace('${', '{').replace('}', '}')
-                    mc_args += value + " "
+                    #value = value.replace('${', '{').replace('}', '}')
+                    #mc_args += value + " "
+                    mc_args.append(value)
                 else:
-                    mc_args += value + " "
+                    #mc_args += value + " "
+                    mc_args.append(value)
 
                 continue
 
@@ -284,9 +288,11 @@ class MCL:
                 for option in value.get('value'):
 
                     if option.startswith("${") and option.endswith("}"):
-                        mc_args += "{}".format(option.lstrip("$")) + " "
+                        #mc_args += "{}".format(option.lstrip("$")) + " "
+                        mc_args.append(value)
                     else:
-                        mc_args += option + " "
+                        #mc_args += option + " "
+                        mc_args.append(value)
             else:
                 logger.debug("不启用 minecraft 参数：{}。".format(value))
                 continue
@@ -308,10 +314,19 @@ class MCL:
         'width': 800 , # widht 
         }
         """
+        self.minecraft_args = []
+        for option in mc_args:
+            if option.startswith("${") and option.endswith("}"):
+                op = option[2:][:-1]
+                if op in minecraft_args_build_dict:
+                    self.minecraft_args.append(minecraft_args_build_dict[op])
 
-        self.minecraft_args = mc_args.format(**minecraft_args_build_dict)
-        self.minecraft_args = self.minecraft_args.split()
-        logger.debug("mc 启动参数：{}".format(self.minecraft_args))
+            elif option.startswith("--"):
+                self.minecraft_args.append(option)
+
+        #self.minecraft_args = mc_args.format(**minecraft_args_build_dict)
+        #self.minecraft_args = self.minecraft_args.split()
+        logger.debug("mc game 启动参数：{}".format(self.minecraft_args))
 
 
     def get_jvm_args(self):
@@ -388,7 +403,7 @@ class MCL:
         'classpath' : self.classpath + self.client_jar
         }
         logger.debug("jvm 参数(解析前)：{}".format(jvms))
-        logger.debug("jvm 参数(解析前) tmp_dirct：{}".format(pprint.pformat(tmp_dict)))
+        logger.debug("jvm 参数(解析前) tmp_dict：{}".format(pprint.pformat(tmp_dict)))
         self.jvm_args = jvms.format(**tmp_dict)
         self.jvm_args = self.jvm_args.split()
         logger.debug("jvm 参数：{}".format(self.jvm_args))
