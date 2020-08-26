@@ -222,7 +222,6 @@ def check_game(export_target=None):
     objects = resources.get("objects")
 
     for v in objects.values():
-        logger.info("objects[]: {}".format(v))
         hash_value = v.get("hash")
         savepath = joinpath(mds.objects, hash_value[0:2], hash_value)
         fillpath(savepath)
