@@ -200,7 +200,7 @@ def get_resources(mc_obj, savepath):
     hash_value = mc_obj.get("hash")
     size = mc_obj.get("size")
 
-    url = joinpath(RESOURCES_OBJECTS, hash_value[0:2], hash_value)
+    url = "/".join([RESOURCES_OBJECTS, hash_value[0:2], hash_value])
 
     logger.info("开始下载：{} ...".format(savepath))
     dler.submit((url, savepath))
