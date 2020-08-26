@@ -40,6 +40,9 @@ from queue import Queue
 from logs import logger
 
 
+RESOURCES_OBJECTS = "https://resources.download.minecraft.net" # + hash_val[0:2] + "/" + hash_val
+USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
+
 BLOCK = 1<<14 # 16k
 
 
@@ -85,9 +88,8 @@ def joinpath(*args):
 def wget(url, savepath):
     block = 1<<14 # 16k
 
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
-    req = request.Request(url, headers=headers)
+    # headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
+    req = request.Request(url, headers=USER_AGENT)
     response = request.urlopen(req, timeout=15)
 
     sha = sha1()
@@ -130,7 +132,7 @@ class Downloader:
             
     def func(self):
 
-        headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
+        # headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
         
         while True:
 
@@ -138,12 +140,12 @@ class Downloader:
 
             block = 1<<14 # 16k
             try:
-                req = request.Request(url, headers=headers)
-                response = request.urlopen(req, timeout=60)
-    
-                with open(savepath, "wb") as f:
-                    for data in iter(partial(response.read, block), b""):
-                        f.write(data)
+                req = request.Request(url, headers=USER_AGENT)
+                with request.urlopen(req, timeout=60) as response:
+                    with open(savepath, "wb") as f:
+                        for data in iter(partial(response.read, block), b""):
+                            f.write(data)
+
             except socket.timeout:
                 logger.warning("下载超时：{}".format(url))
                 os.remove(savepath)
@@ -157,7 +159,7 @@ class Downloader:
                 self.taskqueue.put((url, savepath))
 
             finally:
-                response.close()
+                # response.close()
                 self.taskqueue.task_done()
                 self.count -= 1
                 logger.info("下载完成：{}".format(savepath))
@@ -198,7 +200,7 @@ def get_resources(mc_obj, savepath):
     hash_value = mc_obj.get("hash")
     size = mc_obj.get("size")
 
-    url = joinpath(savepath, hash_value[0:2], hash_value)
+    url = joinpath(RESOURCES_OBJECTS, hash_value[0:2], hash_value)
 
     logger.info("开始下载：{} ...".format(savepath))
     dler.submit((url, savepath))

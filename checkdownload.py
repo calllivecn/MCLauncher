@@ -7,12 +7,13 @@ __all__ = [
             "get_manifest",
             ]
 
-import os
+# import os
+import sys
 import shutil
 from os import path
 from urllib.request import urlopen
 
-from launcher import MCL
+# from launcher import MCL
 from logs import logger, setLevel
 from initconfig import *
 from funcs import *
@@ -98,9 +99,10 @@ def install_game():
                 
 
     assetindex = versions_json.get("assetIndex")
-    assetindex_id = assetindex.get("id")
-    
-    assetindex_json = assetindex_id + ".json"
+
+    # 每个本版 assetindex.json 文个都不一样，要分名保存。
+    # assetindex_id = assetindex.get("id")
+    assetindex_json = mds.version_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
@@ -200,22 +202,27 @@ def check_game(export_target=None):
                 
 
     assetindex = versions_json.get("assetIndex")
-    assetindex_id = assetindex.get("id")
-    
-    assetindex_json = assetindex_id + ".json"
+    # 每个本版 assetindex.json 文个都不一样，要分名保存。
+    # assetindex_id = assetindex.get("id")
+    assetindex_json = mds.version_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
-    if path.exists(assetindex_realpath):
-        logger.info("{} 已存在。".format(assetindex_realpath))
+    value = assetindex.get("sha1")
+    logger.info("assetindex.get('sda1') --> value: {}".format(value))
+    if diffsha1(value, assetindex_realpath):
+        logger.info("{} ... ok".format(assetindex_realpath))
     else:
-        logger.info("{} 不存在。".format(assetindex_realpath))
-        sys.exit(1)
+        logger.info("check fail 下载: {}".format(assetindex_realpath))
+        wget(assetindex.get("url"), assetindex_realpath)
+
+
 
     resources = get_json(assetindex_realpath)
     objects = resources.get("objects")
 
     for v in objects.values():
+        logger.info("objects[]: {}".format(v))
         hash_value = v.get("hash")
         savepath = joinpath(mds.objects, hash_value[0:2], hash_value)
         fillpath(savepath)
@@ -294,9 +301,9 @@ def export_game(directory):
 
     logger.info("开始导出 asssetIndex.json 资源")
     assetindex = versions_json.get("assetIndex")
-    assetindex_id = assetindex.get("id")
-    
-    assetindex_json = assetindex_id + ".json"
+    # 每个本版 assetindex.json 文个都不一样，要分名保存。
+    # assetindex_id = assetindex.get("id")
+    assetindex_json = mds.version_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     assetindex_realpath_new = joinpath(mds_new.indexes, assetindex_json)
