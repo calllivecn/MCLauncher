@@ -101,13 +101,14 @@ def install_game():
     assetindex = versions_json.get("assetIndex")
 
     # 每个本版 assetindex.json 文个都不一样，要分名保存。
-    # assetindex_id = assetindex.get("id")
-    assetindex_json = mds.version_id + ".json"
+    assetindex_id = assetindex.get("id")
+    assetindex_json = assetindex_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
-    if path.exists(assetindex_realpath):
-        logger.info("{} 已存在。".format(assetindex_realpath))
+    src_sha1 = assetindex.get("sha1")  
+    if path.exists(assetindex_realpath) and diffsha1(src_sha1, assetindex_realpath):
+        logger.info("{} 已存在, check sha1".format(assetindex_realpath))
     else:
         logger.info("下载 assetindex: {}".format(assetindex_realpath))
         wget(assetindex.get("url"), assetindex_realpath)
@@ -203,14 +204,13 @@ def check_game(export_target=None):
 
     assetindex = versions_json.get("assetIndex")
     # 每个本版 assetindex.json 文个都不一样，要分名保存。
-    # assetindex_id = assetindex.get("id")
-    assetindex_json = mds.version_id + ".json"
+    assetindex_id = assetindex.get("id")
+    assetindex_json = assetindex_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     fillpath(assetindex_realpath)
     value = assetindex.get("sha1")
-    logger.info("assetindex.get('sda1') --> value: {}".format(value))
-    if diffsha1(value, assetindex_realpath):
+    if path.exists(assetindex_realpath) and diffsha1(value, assetindex_realpath):
         logger.info("{} ... ok".format(assetindex_realpath))
     else:
         logger.info("check fail 下载: {}".format(assetindex_realpath))
@@ -301,15 +301,15 @@ def export_game(directory):
     logger.info("开始导出 asssetIndex.json 资源")
     assetindex = versions_json.get("assetIndex")
     # 每个本版 assetindex.json 文个都不一样，要分名保存。
-    # assetindex_id = assetindex.get("id")
-    assetindex_json = mds.version_id + ".json"
+    assetindex_id = assetindex.get("id")
+    assetindex_json = assetindex_id + ".json"
 
     assetindex_realpath = joinpath(mds.indexes, assetindex_json)
     assetindex_realpath_new = joinpath(mds_new.indexes, assetindex_json)
 
     logger.info("export: {}".format(assetindex_realpath_new))
     copy(assetindex_realpath, assetindex_realpath_new)
-                
+
 
     logger.info("开始导出 objects 资源")
     resources = get_json(assetindex_realpath)
