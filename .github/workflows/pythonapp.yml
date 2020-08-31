@@ -23,12 +23,11 @@ jobs:
         bash build2pyz.sh
         ls -lh
 
-    steps:
-      - name: release MCLaunhcer.pyz from github.com
-        uses: actions/upload-artifact@v2
-        with:
-          name: MCLauncher.pyz
-          path: MCLauncher.pyz
+    - name: release MCLaunhcer.pyz from github.com
+      uses: actions/upload-artifact@v2
+      with:
+        name: MCLauncher.pyz
+        path: MCLauncher.pyz
 
 
 #  upload:
