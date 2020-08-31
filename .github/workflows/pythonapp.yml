@@ -2,8 +2,9 @@ name: Python application
 
 on:
   push:
-    - master
-    - devel
+    breanchs:
+      - master
+      - devel
 
 jobs:
   build:
