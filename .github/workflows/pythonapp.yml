@@ -1,6 +1,9 @@
 name: Python application
 
-on: [push]
+on:
+    push:
+        - master
+        - devel
 
 jobs:
   build:
@@ -8,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@master
 
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
@@ -21,8 +24,9 @@ jobs:
         ls -lh
 
 
-    - name: MCLaunhcer.pyz
+  upload:
+    - name: release MCLaunhcer.pyz from github.com
     - uses: actions/upload-artifact@v1
       with:
-          path: MCLauncher.pyz
+        path: MCLauncher.pyz
 
