@@ -13,12 +13,13 @@ jobs:
     - uses: actions/checkout@master
 
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.7
 
     - name: Test with Actions
       run: |
+        ls -lh
         bash build2pyz.sh
         ls -lh
 
@@ -30,7 +31,7 @@ jobs:
 
     steps:
       - name: release MCLaunhcer.pyz from github.com
-      - uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: MCLauncher.pyz
           path: MCLauncher.pyz
