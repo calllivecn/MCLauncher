@@ -26,6 +26,8 @@ jobs:
 
 
   upload:
+    needs:
+      - build
     - name: release MCLaunhcer.pyz from github.com
     - uses: actions/upload-artifact@v1
       with:
