@@ -23,12 +23,6 @@ jobs:
         bash build2pyz.sh
         ls -lh
 
-
-  upload:
-    runs-on: ubuntu-latest
-    needs:
-      - build
-
     steps:
       - name: release MCLaunhcer.pyz from github.com
         uses: actions/upload-artifact@v2
@@ -36,3 +30,8 @@ jobs:
           name: MCLauncher.pyz
           path: MCLauncher.pyz
 
+
+#  upload:
+#    runs-on: ubuntu-latest
+#    needs:
+#      - build
