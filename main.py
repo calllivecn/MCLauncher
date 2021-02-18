@@ -64,19 +64,22 @@ def main():
 
     if path.exists(GAME_CONFIG):
 
-        mds.version_id()
+        mds.select_version_id()
         
         user_data = get_json(GAME_CONFIG)
 
         if args.game_version:
             currentversion = select_local(mds.versions)
             user_data["currentversion"] = currentversion
+            # mds.version_id = currentversion
+            mds.select_version_id(currentversion)
             set_json(user_data, GAME_CONFIG)
 
         try:
             username = user_data['username']
             uuid = user_data['uuid']
             version = user_data['currentversion']
+            mds.select_version_id(version)
         except KeyError:
             logger.warning("{} 配置文件格式错误! 请重新启动".format(GAME_CONFIG))
             os.remove(GAME_CONFIG)
@@ -93,7 +96,7 @@ def main():
 
         currentversion = select_local(mds.versions)
 
-        mds.version_id(currentversion)
+        mds.select_version_id(currentversion)
 
         user_data = {'username' : username ,'uuid' : uuid, 'currentversion': currentversion}
         set_json(user_data, GAME_CONFIG)
