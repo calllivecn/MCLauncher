@@ -74,7 +74,7 @@ class McDirStruct:
         
 
     # 选择 version_id 后才能 self.client_jar self.client_json self.assetindex
-    def version_id(self, version_id=None):
+    def select_version_id(self, version_id=None):
         """
         param: version_id 默认为None, version_id 为非None 时为创建MC 目录构造。
         """
@@ -88,8 +88,8 @@ class McDirStruct:
             else:
                 logger.info("当前版本：{}".format(vers))
                 vers.sort()
-                self.version_id = vers[0]
-                logger.info("选择版本：{}".format(self.version_id))
+                self.version_id = vers[-1]
+                logger.info("默认选择版本：{}".format(self.version_id))
 
                 self.client_jar = joinpath(self.versions, self.version_id, self.version_id + ".jar")
 
