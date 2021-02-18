@@ -26,7 +26,7 @@ def parse_args():
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
 
-    parse.add_argument("--game-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
+    parse.add_argument("--select-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
 
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
     
