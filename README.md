@@ -5,7 +5,15 @@
 	1. 有了GUI， 还没接入。
 	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)： 1.16.x, 1.15.x, 1.14.x, 1.13.x (minimumLauncherVersion: 21)
 
+CHANGELOG 2021-02-18：
+
+	1. fix  --game-version 选择游戏后不能启动对应版本。
+	2. modify --game-version to --select-version
+	3. 还有修改用户名后，不能生效的问题。（之后在修）
+
 CHANGELOG 2020-08-06：
+
+   	windows 支持。
 
 	1. windows 应该是支持了（手上没机器实测，虚拟机里测试能启动，说要更新openGL驱动。）
 
@@ -13,7 +21,7 @@ CHANGELOG 2020-08-05：
 
 	1. 指定一个游戏版本进行导出(--export-game)
 	2. 游戏资源--check-game添加。
-	3. 支持选择(--game-version)游戏版本启动, 默认启动本地最新版。
+	3. 支持选择(--select-version)游戏版本启动, 默认启动本地最新版。
 
 ### 使用注意事项：
 
@@ -38,5 +46,11 @@ CHANGELOG 2020-08-05：
 
 	# 之后启动
 	python3 MCLahuncher.pyz
+
+	# 选择游戏版本
+	python3 MCLahuncher.pyz --select-version
+
+	# 修改用户名
+	python3 MCLahuncher.pyz --username <名字>
 ```
 
