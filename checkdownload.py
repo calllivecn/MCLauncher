@@ -134,7 +134,7 @@ def check_game(export_target=None):
 
     version_id = select_local(mds.versions)
 
-    mds.version_id(version_id)
+    mds.select_version_id(version_id)
 
     fillpath(mds.client_json)
     if path.exists(mds.client_json):
@@ -250,8 +250,8 @@ def export_game(directory):
 
     version_id = select_local(mds.versions)
 
-    mds.version_id(version_id)
-    mds_new.version_id(version_id)
+    mds.select_version_id(version_id)
+    mds_new.select_version_id(version_id)
 
     logger.info("export: {}".format(mds_new.client_json))
     copy(mds.client_json, mds_new.client_json)
