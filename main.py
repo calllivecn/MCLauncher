@@ -68,7 +68,7 @@ def main():
         
         user_data = get_json(GAME_CONFIG)
 
-        if args.game_version:
+        if args.select_version:
             currentversion = select_local(mds.versions)
             user_data["currentversion"] = currentversion
             # mds.version_id = currentversion
