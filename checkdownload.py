@@ -32,7 +32,7 @@ def install_game():
 
     version_id = manifest_json.get("id")
 
-    mds.version_id(version_id)
+    mds.select_version_id(version_id)
 
     fillpath(mds.client_json)
     if path.exists(mds.client_json):
