@@ -44,6 +44,10 @@ def main():
     logger.setLevel(args.verbose)
 
     if args.install_game:
+
+        if args.verbose <= 1:
+            logger.setLevel(1)
+
         checkdownload.install_game()
         sys.exit(0)
     
@@ -55,6 +59,10 @@ def main():
         sys.exit(0)
     
     if args.export_game:
+
+        if args.verbose <= 1:
+            logger.setLevel(1)
+
         checkdownload.export_game(args.export_game)
         sys.exit(0)
 
