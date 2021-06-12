@@ -74,6 +74,7 @@ def main():
     mds = McDirStruct()
     os.chdir(mds.Duser_home)
 
+    # 保存配置
     if path.exists(GAME_CONFIG):
 
         mds.select_version_id()
@@ -91,6 +92,9 @@ def main():
             username = user_data['username']
             uuid = user_data['uuid']
             version = user_data['currentversion']
+            java_path = user_data['java-path']
+            jvm_args = user_data['jvm-args']
+
             mds.select_version_id(version)
         except KeyError:
             logger.warning("{} 配置文件格式错误! 请重新启动".format(GAME_CONFIG))
@@ -111,17 +115,26 @@ def main():
         mds.select_version_id(currentversion)
 
         user_data = {'username' : username ,'uuid' : uuid, 'currentversion': currentversion}
+
+        # 设置 java path
+        if args.java_path:
+            user_data['java-path'] = args.java_path
+        else:
+            user_data['java-path'] = "java"
+
+
+        # 设置 jvm 参数
+        if args.jvm_args:
+            user_data['jvm-args'] = args.jvm_args
+        else:
+            user_data['jvm-args'] = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M"
+
         set_json(user_data, GAME_CONFIG)
 
     mclauncher = MCL(username, uuid, mds)
-
-    # 设置 java path
-    if args.java_path:
-        mclauncher.set_java_path(args.java_path)
-
-    # 设置 jvm 参数
-    if args.jvm_args:
-        mclauncher.set_jvm_args(args.jvm_args)
+    
+    mclauncher.set_java_path(user_data['java-path'])
+    mclauncher.set_jvm_customize_args(user_data['jvm-args'])
 
     mclauncher.launcher()
 
