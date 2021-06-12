@@ -74,10 +74,10 @@ class MCL:
         self.get_jvm_args()
 
         # 黙认 java 路径
-        self.java_path = "java"
+        # self.java_path = "java"
 
         # 黙认 jvm_customize_args
-        self.jvm_customize_args = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M".split()
+        # self.jvm_customize_args = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M".split()
 
         # 从${version}.json里解析
         self.get_game_args()
