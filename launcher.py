@@ -76,8 +76,8 @@ class MCL:
         # 黙认 java 路径
         self.java_path = "java"
 
-        # 黙认 jvm_args
-        self.jvm_other_args = ["-XX:+UseConcMarkSweepGC", "-XX:-UseAdaptiveSizePolicy", "-Xmn512M"]
+        # 黙认 jvm_customize_args
+        self.jvm_customize_args = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M".split()
 
         # 从${version}.json里解析
         self.get_game_args()
@@ -87,7 +87,7 @@ class MCL:
         # 注册清理函数
         atexit.register(self.clear_natives)
 
-        self.launcher_cmd = [self.java_path] + self.jvm_other_args + self.jvm_args + [self.mainclass] + self.minecraft_args
+        self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
         logger.debug("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
         try:
@@ -99,8 +99,8 @@ class MCL:
     def set_java_path(self, java_path):
         self.java_path = java_path
 
-    def set_jvm_args(self, jvm_args):
-        self.jvm_other_args = jvm_args.split()
+    def set_jvm_customize_args(self, jvm_customize_args):
+        self.jvm_customize_args = jvm_customize_args.split()
     
     def __get_gameDir(self):
         
