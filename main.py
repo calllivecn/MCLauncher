@@ -28,6 +28,10 @@ def parse_args():
 
     parse.add_argument("--select-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
 
+    parse.add_argument("--java-path", action="store", help="指定 java 路径")
+
+    parse.add_argument("--jvm-args", action="store", help="设置 jvm 参数")
+
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
     
     return parse.parse_args()
@@ -110,6 +114,15 @@ def main():
         set_json(user_data, GAME_CONFIG)
 
     mclauncher = MCL(username, uuid, mds)
+
+    # 设置 java path
+    if args.java_path:
+        mclauncher.set_java_path(args.java_path)
+
+    # 设置 jvm 参数
+    if args.jvm_args:
+        mclauncher.set_jvm_args(args.jvm_args)
+
     mclauncher.launcher()
 
 
