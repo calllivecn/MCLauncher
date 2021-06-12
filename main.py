@@ -6,7 +6,9 @@
 import os
 import sys
 from os import path
+from pathlib import Path
 from argparse import ArgumentParser
+
 
 from launcher import MCL
 from initconfig import *
@@ -133,7 +135,7 @@ def main():
 
     mclauncher = MCL(username, uuid, mds)
     
-    mclauncher.set_java_path(user_data['java-path'])
+    mclauncher.set_java_path(str(Path(user_data['java-path'])))
     mclauncher.set_jvm_customize_args(user_data['jvm-args'])
 
     mclauncher.launcher()
