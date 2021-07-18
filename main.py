@@ -11,11 +11,12 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 
+import checkdownload
 from launcher import MCL
 from initconfig import *
 from funcs import *
 from logs import logger
-import checkdownload
+from usercfg import UserCFG
 
 
 def parse_args():
@@ -38,7 +39,7 @@ def parse_args():
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
 
     parse.add_argument("--parse", action="store_true", help=argparse.SUPPRESS)
-    
+
     return parse.parse_args()
 
 
@@ -83,88 +84,21 @@ def main():
     mds = McDirStruct()
     os.chdir(mds.Duser_home)
 
-    # 保存配置
-    if path.exists(GAME_CONFIG):
+    usercfg = UserCFG(args)
 
-        mds.select_version_id()
-        
-        user_data = get_json(GAME_CONFIG)
+    # 更新游戏版本
+    if args.select_version:
+        # 选择游戏版本
+        usercfg.currentversion = select_local(mds.versions)
 
-        if args.select_version:
-            currentversion = select_local(mds.versions)
-            user_data["currentversion"] = currentversion
-            # mds.version_id = currentversion
-            mds.select_version_id(currentversion)
-            set_json(user_data, GAME_CONFIG)
+    # 有更新保存配置，无更新不保存配置。
+    usercfg.set_cfg()
 
-        try:
-            username = user_data['username']
-            uuid = user_data['uuid']
-            version = user_data['currentversion']
-            java_path = user_data['java-path']
-            jvm_args = user_data['jvm-args']
-
-            mds.select_version_id(version)
-        except KeyError:
-            logger.warning("{} 配置文件格式错误! 请重新启动".format(GAME_CONFIG))
-            os.remove(GAME_CONFIG)
-            sys.exit(1)
-
-    else:
-
-        if args.username is None:
-            logger.error("首次启动需要设置一个游戏用户名！")
-            sys.exit(1)
-        
-        username = args.username
-        uuid = get_uuid(username)
-
-        currentversion = select_local(mds.versions)
-
-        mds.select_version_id(currentversion)
-
-        user_data = {'username' : username ,'uuid' : uuid, 'currentversion': currentversion}
-
-        # 设置 java path
-        if args.java_path:
-            user_data['java-path'] = args.java_path
-        else:
-            user_data['java-path'] = "java"
-
-
-        # 设置 jvm 参数
-        if args.jvm_args:
-            user_data['jvm-args'] = args.jvm_args
-        else:
-            user_data['jvm-args'] = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M"
-
-        set_json(user_data, GAME_CONFIG)
-
-    # 是否更新配置
-    UPDATE_CFG = False
-    if args.username:
-        UPDATE_CFG = True
-        user_data['username'] = args.username
-        user_data["uuid"] = get_uuid(args.username)
-
-    if args.java_path:
-        UPDATE_CFG = True
-        user_data['java-path'] = args.java_path
-
-    if args.jvm_args:
-        UPDATE_CFG = True
-        user_data['jvm-args'] = args.jvm_args
-
-    # 如果这个更新，就更新
-    if UPDATE_CFG:
-        logger.debug("更新配置")
-        set_json(user_data, GAME_CONFIG)
-
-    mclauncher = MCL(username, uuid, mds)
+    mds.select_version_id(usercfg.currentversion)
+    mclauncher = MCL(usercfg.username, usercfg.uuid, mds)
     
-    mclauncher.set_java_path(str(Path(user_data['java-path'])))
-    mclauncher.set_jvm_customize_args(user_data['jvm-args'])
-
+    mclauncher.set_java_path(str(Path(usercfg.java_path)))
+    mclauncher.set_jvm_customize_args(usercfg.jvm_args)
     mclauncher.launcher()
 
 
