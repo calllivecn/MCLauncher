@@ -3,6 +3,7 @@
 # date 2019-07-22 23:58:30
 # author calllivecn <c-all@qq.com>
 
+import argparse
 import os
 import sys
 from os import path
@@ -35,6 +36,8 @@ def parse_args():
     parse.add_argument("--jvm-args", action="store", help="设置 jvm 参数")
 
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
+
+    parse.add_argument("--parse", action="store_true", help=argparse.SUPPRESS)
     
     return parse.parse_args()
 
@@ -43,12 +46,16 @@ def main():
 
     args = parse_args()
 
-    if args.verbose >= 3:
-        print("args:", args)
+    if args.parse:
+        print(args)
         sys.exit(0)
 
-    logger.setLevel(args.verbose)
-
+    if args.verbose >= 3:
+        print("args:", args)
+        logger.setLevel(3)
+    else:
+        logger.setLevel(args.verbose)
+    
     if args.install_game:
 
         if args.verbose <= 1:
@@ -131,6 +138,26 @@ def main():
         else:
             user_data['jvm-args'] = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M"
 
+        set_json(user_data, GAME_CONFIG)
+
+    # 是否更新配置
+    UPDATE_CFG = False
+    if args.username:
+        UPDATE_CFG = True
+        user_data['username'] = args.username
+        user_data["uuid"] = get_uuid(args.username)
+
+    if args.java_path:
+        UPDATE_CFG = True
+        user_data['java-path'] = args.java_path
+
+    if args.jvm_args:
+        UPDATE_CFG = True
+        user_data['jvm-args'] = args.jvm_args
+
+    # 如果这个更新，就更新
+    if UPDATE_CFG:
+        logger.debug("更新配置")
         set_json(user_data, GAME_CONFIG)
 
     mclauncher = MCL(username, uuid, mds)
