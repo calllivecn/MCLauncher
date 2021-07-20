@@ -4,7 +4,7 @@
 # author calllivecn <c-all@qq.com>
 
 
-__all__ = [
+__all__ = (
             "loads_json",
             "get_json",
             "set_json",
@@ -21,7 +21,10 @@ __all__ = [
             "diffsha1",
             "install_select",
             "select_local",
-            ]
+            "DotDict",
+            "get_dotdict",
+            "set_dotdict",
+)
 
 
 import os
@@ -57,6 +60,17 @@ def get_json(f):
 def set_json(obj,f):
     with open(f,'w') as fp:
          data = json.dump(obj, fp, ensure_ascii=False, indent=4)
+    return data
+
+def get_dotdict(f):
+    d = DotDict()
+    with open(f) as fp:
+        data = d.load(fp)
+    return data
+
+def set_dotdict(d, f):
+    with open(f) as fp:
+        data = d.dump(fp, ensure_ascii=False, indent=4)
     return data
 
 def get_uuid(username):
@@ -100,6 +114,8 @@ def wget(url, savepath):
             sha.update(data)
 
     return sha.hexdigest()
+
+
 
 
 class Downloader:
@@ -173,6 +189,39 @@ class Downloader:
 
 dler = Downloader()
 
+class DotDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return self.get(name)
+
+    def __setattr__(self, name, value):
+        self.__setitem__(name, value)
+
+    def loads(self, str_byte, *args, **kwargs):
+        self.update(json.loads(str_byte, *args, **kwargs, object_hook=self.__d2dd))
+
+    def dumps(self, *args, **kwargs):
+        return json.dumps(self, *args, **kwargs, default=self.__dd2d)
+
+    def load(self, fp, *args, **kwargs):
+        self.update(json.load(fp, *args, **kwargs, object_hook=self.__d2dd))
+
+    def dump(self, fp, *args, **kwargs):
+        return json.dump(self, fp, *args, **kwargs, default=self.__dd2d)
+    
+    @classmethod
+    def __d2dd(cls, obj):
+        return cls(obj)
+
+    @classmethod
+    def __dd2d(cls, obj):
+
+        if isinstance(obj, cls):
+            return obj
+
+        return obj
 
 def sha1sum(filename):
     sha = sha1()
