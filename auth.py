@@ -4,25 +4,60 @@
 # author calllivecn <c-all@qq.com>
 
 
+__all__ = (
+    "auth",
+)
+
 import re
+import sys
 import json
 import time
-import getpass
 import webbrowser
 from pathlib import Path
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 from urllib import (
     request,
     parse,
 )
+from pprint import (
+    pprint,
+    pformat,
+)
 
-from pprint import pprint
+from logs import logger
+from initconfig import (
+    CONF,
+)
+from funcs import (
+    DotDict,
+)
 
-def req(url, param=None, method="GET", content="application/json"):
+"""
+MC 认证过程文档：https://wiki.vg/ZH:Microsoft_Authentication_Scheme
+"""
+
+def utc2local(utc_dtm):
+    local_tm = datetime.fromtimestamp(0)
+    utc_tm = datetime.utcfromtimestamp(0)
+    offset = local_tm - utc_tm
+    return utc_dtm + offset
+
+def local2utc(local_dtm):
+    return datetime.utcfromtimestamp(local_dtm.timestamp())
+
+def req(url, param=None, method="GET", header={}, content="application/json"):
 
     headers = {
         #"Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
         "Content-Type": content,
     }
+
+    if header is not {}:
+        headers.update(header)
 
     if param is None:
         data = None
@@ -48,179 +83,287 @@ def req(url, param=None, method="GET", content="application/json"):
     return result
 
 
-# 
 find_code = re.compile("https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
 
-# Minecraft ID
-CLIENT_ID="00000000402b5328"
+class AuthorizedError(Exception):
+    pass
 
-# 用户登录 缓存
-USERCACHE_FILE = Path("cache.json")
+class MicrosoftAuthorized:
 
-# 保存 cachefile
-def save_cachefile(j):
-    data = {
-        "timestamp": int(time.time()),
-        "expires_in": j["expires_in"],
-        "access_token": j["access_token"],
-        "refresh_token": j["refresh_token"],
-    }
+    # Minecraft ID
+    CLIENT_ID="00000000402b5328"
 
-    with open(USERCACHE_FILE, "w") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    def __init__(self, username=None):
 
-# Microsoft auth
-def microsoft_auth():
-    # client_id为minecraft在azure的服务名，response_type为返回结果类型，scope为验证服务的类型，redirect_uri为返回的重定向链接。
-    URL="https://login.live.com/oauth20_authorize.srf"
+        self.username = username
+        self.usercache = DotDict()
 
-    param={
-        "client_id": CLIENT_ID,
-        "response_type": "code",
-        "grant_type": "authorization_code",
-        "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-        "scope": "service::user.auth.xboxlive.com::MBI_SSL"
-    }
-    data = parse.urlencode(param)
-    webbrowser.open_new(URL + "?" + data)
+        if self.username != None:
+            self.user_conf = CONF / (self.username + ".json")
+            # 有token(xbox), 且没过期
+            self.isexpires()
 
-    code = ""
-    while code == "":
-        #login_url = getpass.getpass("成功登录后的浏览器URL: ")
-        login_url = input("成功登录后的浏览器URL: ")
-        re_code =  find_code.match(login_url)
-
-        if re_code:
-            code = re_code.group(1)
-            print(code)
-            break
+        if self.usercache:
+            xbox = self.get_xsts_token(self.usercache.xbox_token)
         else:
-            print("不是成功登录后的浏览器URL，请重新输入。")
+            code = self.microsoft_account_login()
+
+            jdata = self.get_access_token(code)
+            logger.debug("access_token ↓")
+            logger.debug(pformat(jdata))
+
+            # get xbox token
+            xbox = self.get_xbox_token(jdata["access_token"])
+
+        # XSTS
+        xsts = self.get_xsts_token(xbox["Token"])
+
+        xsts_token = xsts["Token"]
+        xsts_uhs = xsts["DisplayClaims"]["xui"][0]["uhs"]
+
+        # mc access token
+        mc_j = self.get_mc_token(xsts_token, xsts_uhs)
+
+        # check microsoft acounnts 是否拥有MC, 否则退出。
+        if not self.check_mc(mc_j["access_token"]):
+            msg = "你的微软账号没有MC"
+            logger.error(msg)
+            raise AuthorizedError(msg)
+        
+        # 添加 MC 启动的 access_token
+        profile = self.get_mc_profile(mc_j["access_token"])
+
+        # MC username
+        self.username = profile["name"]
+
+        self.usercache.username = profile["name"]
+        self.usercache.uuid = profile["id"]
+        self.usercache.mc_access_token = mc_j["access_token"]
+
+        # 落盘
+        self.save()
     
-    return code
+    def user(self):
+        return self.usercache.username, self.usercache.uuid, self.usercache.mc_access_token
 
-# Authorization Code -> Toke
-def get_access_token(code):
-    URL_token="https://login.live.com/oauth20_token.srf"
+    # Microsoft auth
+    def microsoft_account_login(self):
+        # client_id为minecraft在azure的服务名，response_type为返回结果类型，scope为验证服务的类型，redirect_uri为返回的重定向链接。
+        URL="https://login.live.com/oauth20_authorize.srf"
 
-    param={
-        "client_id": CLIENT_ID,
-        "code": code,
-        "grant_type": "authorization_code",
-        "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-        "scope": "service::user.auth.xboxlive.com::MBI_SSL"
-    }
+        param={
+            "client_id": self.CLIENT_ID,
+            "response_type": "code",
+            "grant_type": "authorization_code",
+            "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
+            "scope": "service::user.auth.xboxlive.com::MBI_SSL"
+        }
+        data = parse.urlencode(param)
+        webbrowser.open_new(URL + "?" + data)
 
-    j = req(URL_token, param, "POST", "application/x-www-form-urlencoded;charset=utf-8;")
-    save_cachefile(j)
-    return j
+        code = ""
+        while code == "":
+            #login_url = getpass.getpass("成功登录后的浏览器URL: ")
+            login_url = input("成功登录后的浏览器URL: ")
+            re_code =  find_code.match(login_url)
 
-# refresh accesstoken
-def refresh(refresh_token):
-    URL_token="https://login.live.com/oauth20_token.srf"
+            if re_code:
+                code = re_code.group(1)
+                logger.debug("Microsoft_auth ↓")
+                logger.debug(pformat(code))
+                break
+            else:
+                print("不是成功登录后的浏览器URL，请重新输入。")
 
-    param={
-        "client_id": CLIENT_ID,
-        "refresh_token": refresh_token,
-        "grant_type": "refresh_token",
-        "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-        "scope": "service::user.auth.xboxlive.com::MBI_SSL"
-    }
+        return code
 
-    j = req(URL_token, param, "POST", "application/x-www-form-urlencoded;charset=utf-8;")
+    # Authorization Code -> Toke
+    def get_access_token(self, code):
+        URL_token="https://login.live.com/oauth20_token.srf"
 
-    save_cachefile(j)
+        param={
+            "client_id": self.CLIENT_ID,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
+            "scope": "service::user.auth.xboxlive.com::MBI_SSL"
+        }
+
+        j = req(URL_token, param, method="POST", content="application/x-www-form-urlencoded;charset=utf-8;")
+        return j
     
-    return j
+    # refresh access token, 没必要刷新，xbox token 过期时间 有15天
+    def refresh_access_token(self, refresh_token):
+        URL_token="https://login.live.com/oauth20_token.srf"
+
+        param={
+            "client_id": self.CLIENT_ID,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+            "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
+            "scope": "service::user.auth.xboxlive.com::MBI_SSL"
+        }
+
+        j = req(URL_token, param, method="POST", content="application/x-www-form-urlencoded;charset=utf-8;")
+
+        return j
+
+    # get xbox token
+    def get_xbox_token(self, accesstoken):
+        # xbox
+        URL_xbox="https://user.auth.xboxlive.com/user/authenticate"
+
+        param = {
+            "Properties": {
+                "AuthMethod": "RPS",
+                "SiteName": "user.auth.xboxlive.com",
+                "RpsTicket": accesstoken,
+            },
+            "RelyingParty": "http://auth.xboxlive.com",
+            "TokenType": "JWT"
+        }
+
+        xbox = req(URL_xbox, param, method="POST")
+
+        logger.debug("xbox ↓")
+        logger.debug(pformat(xbox))
+
+        self.usercache.xbox_expires_in = xbox["NotAfter"]
+        self.usercache.xbox_token = xbox["Token"]
+
+        return xbox
+
+    # get xsts token
+    def get_xsts_token(self, xbox_token):
+        URL_xsts="https://xsts.auth.xboxlive.com/xsts/authorize"
+
+        param = {
+            "Properties": {
+                "SandboxId": "RETAIL",
+                "UserTokens": [xbox_token],
+            },
+            "RelyingParty": "rp://api.minecraftservices.com/",
+            "TokenType": "JWT",
+        }
+
+        xsts = req(URL_xsts, param, method="POST")
+
+        logger.debug("xsts ↓")
+        logger.debug(pformat(xsts))
+
+        self.usercache.xsts_expires_in = xsts["NotAfter"]
+        self.usercache.xsts_refresh_token = xsts["Token"]
+
+        return xsts
+
+    # get MC token
+    def get_mc_token(self, xsts_token, xsts_uhs):
+        URL_mc="https://api.minecraftservices.com/authentication/login_with_xbox"
+
+        param = {
+            "identityToken": "XBL3.0 x=" + xsts_uhs + ";" + xsts_token,
+        }
+
+        mc_j = req(URL_mc, param, method="POST")
+
+        logger.debug("get MC token ↓")
+        logger.debug(pformat(mc_j))
+
+        self.usercache.mc_token_type = mc_j["token_type"]
+        self.usercache.mc_expires_in = mc_j["expires_in"]
+
+        return mc_j
+
+    # check microsoft acounnts 是否拥有MC
+    def check_mc(self, access_token):
+        url_check_mc="https://api.minecraftservices.com/entitlements/mcstore"
+
+        #header = {"Authorization": "Bearer " + access_token}
+        header = {"Authorization": self.usercache.mc_token_type + " " + access_token}
+
+        result = req(url_check_mc, header=header)
+        if len(result["items"]) == 0:
+            logger.error("你的微软账号里没Minecraft.")
+            sys.exit(0)
+        else:
+            logger.debug("check mc ↓")
+            logger.debug(pformat(result))
+            return True
+    
+    # get MC profile
+    def get_mc_profile(self, access_token):
+        """
+        正确返回：
+        {
+          "id" : "986dec87b7ec47ff89ff033fdb95c4b5", // 账号的真实uuid
+          "name" : "HowDoesAuthWork", // 该账号的mc用户名
+          "skins" : [ {
+            "id" : "6a6e65e5-76dd-4c3c-a625-162924514568",
+            "state" : "ACTIVE",
+            "url" : "http://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b",
+            "variant" : "CLASSIC",
+            "alias" : "STEVE"
+          } ],
+          "capes" : [ ]
+         }    
+        错误返回：
+        {
+        "path" : "/minecraft/profile",
+        "errorType" : "NOT_FOUND",
+        "error" : "NOT_FOUND",
+        "errorMessage" : "The server has not found anything matching the request URI",
+        "developerMessage" : "The server has not found anything matching the request URI"
+        }
+        """
+        url_mc_profile="https://api.minecraftservices.com/minecraft/profile"
+
+        header = {"Authorization": "Bearer " + access_token}
+
+        profile = req(url_mc_profile, header=header)
+
+        logger.debug("profile ↓")
+        logger.debug(pformat(profile))
+
+        if profile.get("error"):
+            msg = "获取Minecarft profile 失败"
+            logger.error(msg)
+            raise AuthorizedError(msg)
+        
+        #self.usercache.mc_expires_in = profile["NotAfter"]
+        #self.usercache.mc_token = profile["token"]
+        
+        return profile
 
 
-# usercache.json 过期没有
-def isexpires(filename):
+    # <username>.json 过期没有
+    def isexpires(self):
+        # dotdict = DotDict()
+        if self.user_conf.exists() and self.user_conf.is_file():
+            with open(self.user_conf) as f:
+                self.usercache.load(f)
+        else:
+            return DotDict()
 
-    if filename.exists() and filename.is_file():
-        with open(filename) as f:
-            usercache = json.load(f)
-    else:
-        return None
+        # 把拿到 的UTC过期时间 转化为 本地时间
+        expires = self.usercache.xbox_expires_in.split(".")[0]
+        expires_in = datetime.strptime(expires + "Z", "%Y-%m-%dT%H:%M:%S%z")
 
-    # code 没过期
-    if usercache["timestamp"] + usercache["expires_in"] > (int(time.time() - 600)):
-        return usercache
-    else:
-        return None
+        # code 没过期
+        #if self.usercache.timestamp + self.usercache.expires_in > (int(time.time() - 600)):
+        if datetime.now(timezone.utc) >= expires_in - timedelta(minutes=600):
+            return self.usercache
+        else:
+            return DotDict()
+    
+    def save(self):
+        with open(self.user_conf, "w") as f:
+            self.usercache.dump(f, ensure_ascii=False, indent=4)
 
 
-def auth():
-
-    # 有token, 且没过期
-    usercache = isexpires(USERCACHE_FILE)
-    if usercache:
-        j = refresh(usercache["refresh_token"])
-    else:
-        code = microsoft_auth()
-        j = get_access_token(code)
-
-    print("j --> ")
-    pprint(j)
-
-    URL_xbox="https://user.auth.xboxlive.com/user/authenticate"
-
-    param = {
-        "Properties": {
-            "AuthMethod": "RPS",
-            "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": j["access_token"]
-        },
-        "RelyingParty": "http://auth.xboxlive.com",
-        "TokenType": "JWT"
-    }
-
-    xbox = req(URL_xbox, param, "POST", "application/json")
-
-    print("xbox --> ")
-    pprint(xbox)
-
-    xbox_token = xbox["Token"]
-    xbox_uhs = xbox["DisplayClaims"]["xui"][0]["uhs"]
-
-    # XSTS
-    URL_xsts="https://xsts.auth.xboxlive.com/xsts/authorize"
-
-    param = {
-        "Properties": {
-            "SandboxId": "RETAIL",
-            "UserTokens": [xbox_token],
-        },
-        "RelyingParty": "rp://api.minecraftservices.com/",
-        "TokenType": "JWT",
-    }
-
-    xsts = req(URL_xsts, param, "POST", "application/json")
-
-    print("xsts -->")
-    print(xsts)
-
-    xsts_token = xsts["Token"]
-    xsts_uhs = xsts["DisplayClaims"]["xui"][0]["uhs"]
-
-    url_mc_profile="https://api.minecraftservices.com/minecraft/profile"
-
-    # get MC access_token
-    URL_mc="https://api.minecraftservices.com/authentication/login_with_xbox"
-
-    param = {
-        "identityToken": "XBL3.0 x=" + xsts_uhs + ";" + xsts_token,
-    }
-
-    mc_j = req(url_mc_profile, param, "GET", "application/json")
-
-    print("mc_j --> ")
-    pprint(mc_j)
-
-    return mc_j
 
 # test
-code="M.R3_BAY.aff26ae3-db72-292c-c331-a960b961863e"
-j = auth()
-
-print(f"返回的json: {j}")
+if __name__ == "__main__":
+    logger.setLevel(2)
+    user = MicrosoftAuthorized("calllivecn")
+    j = user.user()
+    print(f"返回的json: {j}")

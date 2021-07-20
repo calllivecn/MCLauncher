@@ -11,10 +11,8 @@ import pprint
 import atexit
 from os import path
 from shutil import rmtree
-from hashlib import md5
 from zipfile import ZipFile
 from subprocess import run, CalledProcessError
-from platform import system
 
 
 from funcs import *
@@ -34,10 +32,11 @@ from logs import logger
 class MCL:
 
 
-    def __init__(self, username, uuid, mds):
+    def __init__(self, username, uuid, accesstoken, mds):
         
         self.username = username
-        self.uuid_token = uuid
+        self.uuid = uuid
+        self.accesstoken = accesstoken
         self.Duser_home = mds.Duser_home
         
         self.mds = mds
@@ -312,10 +311,10 @@ class MCL:
                     'game_directory': self.gameDir,
                     'assets_root': self.assets,
                     'assets_index_name': self.mc_json.get('assets'),
-                    'auth_uuid': self.uuid_token,
-                    'auth_access_token': self.uuid_token,
-                    #'user_type': 'mojang',
-                    'user_type': 'legacy',
+                    'auth_uuid': self.uuid,
+                    'auth_access_token': self.accesstoken,
+                    'user_type': 'mojang',
+                    # 'user_type': 'legacy',
                     'version_type': self.mc_json.get('type'),
                     }
 

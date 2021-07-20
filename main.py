@@ -3,10 +3,9 @@
 # date 2019-07-22 23:58:30
 # author calllivecn <c-all@qq.com>
 
-import argparse
 import os
 import sys
-from os import path
+import argparse
 from pathlib import Path
 from argparse import ArgumentParser
 
@@ -17,6 +16,7 @@ from initconfig import *
 from funcs import *
 from logs import logger
 from usercfg import UserCFG
+from auth import auth
 
 
 def parse_args():
@@ -95,7 +95,7 @@ def main():
     usercfg.set_cfg()
 
     mds.select_version_id(usercfg.currentversion)
-    mclauncher = MCL(usercfg.username, usercfg.uuid, mds)
+    mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds)
     
     mclauncher.set_java_path(str(Path(usercfg.java_path)))
     mclauncher.set_jvm_customize_args(usercfg.jvm_args)

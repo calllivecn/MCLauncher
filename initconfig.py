@@ -8,6 +8,7 @@ __all__ = [
             "LAUNCHER",
             "LAUNCHER_VERSION",
             "GAME_CONFIG",
+            "CONF",
             "OSTYPE",
             "McDirStruct",
 
@@ -20,6 +21,7 @@ __all__ = [
 import os
 import sys
 from os import path
+from pathlib import Path
 from platform import system #, process
 
 
@@ -28,13 +30,14 @@ from logs import logger
 
 
 LAUNCHER = "MCL"
-LAUNCHER_VERSION = "v1.2"
+LAUNCHER_VERSION = "v1.5"
 
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
 
-GAME_CONFIG = "MCLauncher.json"
+GAME_CONFIG = Path("MCLauncher.json")
+CONF = Path("conf")
 
 OSTYPE = system().lower()
 #ARCH = process()
