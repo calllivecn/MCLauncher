@@ -36,8 +36,14 @@ LAUNCHER_VERSION = "v1.5"
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
 
-GAME_CONFIG = Path("MCLauncher.json")
-CONF = Path("conf")
+# sys.argv[0] 所在目录
+program = Path(sys.argv[0]).parent
+
+GAME_CONFIG = program / "MCLauncher.json"
+CONF = program / "conf"
+
+if not CONF.exists():
+    CONF.mkdir()
 
 OSTYPE = system().lower()
 #ARCH = process()

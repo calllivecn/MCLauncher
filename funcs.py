@@ -65,11 +65,11 @@ def set_json(obj,f):
 def get_dotdict(f):
     d = DotDict()
     with open(f) as fp:
-        data = d.load(fp)
-    return data
+        d.load(fp)
+    return d
 
 def set_dotdict(d, f):
-    with open(f) as fp:
+    with open(f, "w") as fp:
         data = d.dump(fp, ensure_ascii=False, indent=4)
     return data
 
