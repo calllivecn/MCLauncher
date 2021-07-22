@@ -104,7 +104,7 @@ class MicrosoftAuthorized:
             self.isexpires()
 
         if self.usercache:
-            xbox = self.get_xsts_token(self.usercache.xbox_token)
+            xsts = self.get_xsts_token(self.usercache.xbox_token)
         else:
             code = self.microsoft_account_login()
 
@@ -115,8 +115,9 @@ class MicrosoftAuthorized:
             # get xbox token
             xbox = self.get_xbox_token(jdata["access_token"])
 
-        # XSTS
-        xsts = self.get_xsts_token(xbox["Token"])
+            # XSTS
+            xsts = self.get_xsts_token(xbox["Token"])
+
 
         xsts_token = xsts["Token"]
         xsts_uhs = xsts["DisplayClaims"]["xui"][0]["uhs"]
@@ -350,7 +351,7 @@ class MicrosoftAuthorized:
 
         # code 没过期
         #if self.usercache.timestamp + self.usercache.expires_in > (int(time.time() - 600)):
-        if datetime.now(timezone.utc) >= expires_in - timedelta(minutes=600):
+        if datetime.now(timezone.utc) >= (expires_in - timedelta(minutes=600)):
             return self.usercache
         else:
             return DotDict()

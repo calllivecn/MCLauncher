@@ -16,7 +16,6 @@ from initconfig import *
 from funcs import *
 from logs import logger
 from usercfg import UserCFG
-from auth import auth
 
 
 def parse_args():
@@ -29,6 +28,8 @@ def parse_args():
     parse.add_argument("--export-game", action="store", help="导出指定游戏版本到新目录")
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
+    
+    parse.add_argument("--online", action="store_true", help="使用微软账号登录")
 
     parse.add_argument("--select-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
 
