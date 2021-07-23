@@ -40,7 +40,7 @@ RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2
 program = Path(sys.argv[0]).parent
 
 GAME_CONFIG = program / "MCLauncher.json"
-CONF = program / "conf"
+CONF = program / ".mcl"
 
 if not CONF.exists():
     CONF.mkdir()
