@@ -1,4 +1,5 @@
 .minecraft/
+server/
 __pycache__/
 logs/
 
