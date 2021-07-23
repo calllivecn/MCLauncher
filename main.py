@@ -14,7 +14,7 @@ import checkdownload
 from launcher import MCL
 from initconfig import *
 from funcs import *
-from logs import logger
+from logs import logger, setLevel
 from usercfg import UserCFG
 
 
@@ -51,24 +51,23 @@ def main():
     if args.parse:
         print(args)
         sys.exit(0)
-
-    if args.verbose >= 3:
-        print("args:", args)
-        logger.setLevel(3)
-    else:
-        logger.setLevel(args.verbose)
     
+    setLevel(args.verbose)
+
+    if args.verbose >= 2:
+        logger.debug("args:", args)
+
     if args.install_game:
 
         if args.verbose <= 1:
-            logger.setLevel(1)
+            setLevel(1)
 
         checkdownload.install_game()
         sys.exit(0)
     
     if args.check_game:
         if args.verbose <= 1:
-            logger.setLevel(1)
+            setLevel(1)
 
         checkdownload.check_game()
         sys.exit(0)
@@ -76,7 +75,7 @@ def main():
     if args.export_game:
 
         if args.verbose <= 1:
-            logger.setLevel(1)
+            setLevel(1)
 
         checkdownload.export_game(args.export_game)
         sys.exit(0)
@@ -100,6 +99,8 @@ def main():
 
     mds.select_version_id(usercfg.currentversion)
     mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds)
+
+    logger.info(f"当前用户名：{usercfg.username}")
     
     mclauncher.set_java_path(str(Path(usercfg.java_path)))
     mclauncher.set_jvm_customize_args(usercfg.jvm_args)
