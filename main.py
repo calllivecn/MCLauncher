@@ -31,7 +31,7 @@ def parse_args():
     
     parse.add_argument("--online", action="store_true", help="使用微软账号登录")
 
-    parse.add_argument("--select-version", action="store_true", help="指定游戏版本。（默认启动本地最新版）")
+    parse.add_argument("--select-version", action="store_true", help="选择游戏版本。（默认启动本地最新版）")
 
     parse.add_argument("--java-path", action="store", help="指定 java 路径")
 
