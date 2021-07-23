@@ -7,6 +7,7 @@
 
 import os
 import sys
+import time
 import pprint
 import atexit
 from os import path
@@ -66,6 +67,7 @@ class MCL:
 
         self.mainclass = self.mc_json.get('mainClass')
 
+        self.timestamp = str(time.time_ns())
         self.__get_Djava_library_path()
 
         self.get_classpath()
@@ -88,7 +90,7 @@ class MCL:
 
         self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
-        logger.debug("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
+        logger.info("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
         try:
             run(self.launcher_cmd, check=True)
         except CalledProcessError as e:
@@ -116,8 +118,8 @@ class MCL:
             sys.exit(1)
 
     def __get_Djava_library_path(self):
-        if self.Djava_library_path == "":
-            self.Djava_library_path = joinpath(self.versions, self.version_id + '-natives')
+        if self.Djava_library_path == "": 
+            self.Djava_library_path = joinpath(str(CONF), self.version_id + '-natives-' + self.timestamp)
         logger.debug("Djava_libaray_path: {}".format(self.Djava_library_path))
     
 
@@ -129,6 +131,7 @@ class MCL:
                     zf.extract(name, target)
 
     def clear_natives(self):
+        logger.debug(f"清理native库: {self.natives_dll_path}")
         rmtree(self.natives_dll_path)
 
     def get_classpath(self):
@@ -209,7 +212,9 @@ class MCL:
                                 if native_dll is not None:
 
                                     jar_dll_realpath = self.libraries + getcp(native_dll)
-                                    self.natives_dll_path = joinpath(self.versions, self.version_id, self.version_id + "-natives")
+
+                                    # 这里为什么要看 self.natives_dll_path 存不存在？2021-07-24
+                                    self.natives_dll_path = joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp)
 
                                     if path.isdir(self.natives_dll_path):
                                         if self.Djava_library_path == '':
@@ -415,7 +420,7 @@ class MCL:
                 logger.debug("不启用的 jvm 参数: {}".format(option_dict.get("value")))
 
         
-        tmp_dict = {'natives_directory': joinpath(self.versions, self.version_id, self.version_id + '-natives'),
+        tmp_dict = {'natives_directory': self.Djava_library_path,
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
         'classpath' : self.classpath + self.client_jar
