@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 from logs import logger
-from initconfig import GAME_CONFIG
+from initconfig import CONF, GAME_CONFIG
 from auth import MicrosoftAuthorized
 from funcs import (
     get_json,
@@ -28,55 +28,46 @@ from funcs import (
 class UserCFG:
 
     def __init__(self, args):
-        if GAME_CONFIG.exists():
-            try:
-                user_data = get_dotdict(GAME_CONFIG)
-                self.username = user_data['username']
-                self.uuid = user_data['uuid']
-                self.accesstoken = user_data["accesstoken"]
-                self.currentversion = user_data['currentversion']
-                self.java_path = user_data['java-path']
-                self.jvm_args = user_data['jvm-args']
-                self.online = user_data['online']
 
-                self.user_data = user_data
+        self.loadcfg()
 
-            except KeyError:
-                logger.warning("{} 配置文件格式错误！已清理，请重新启动".format(GAME_CONFIG))
-                os.remove(GAME_CONFIG)
-                sys.exit(1)
-                # 解析出错 End
-            
-            if self.online:
-                # 走正版
-                account = MicrosoftAuthorized(self.username)
-                self.username, self.uuid, self.accesstoken = account.user()
-            #else:
-                # 选择版本后，启动
+        # 切换正版用户
+        if args.username and args.online:
 
-        else:
-            if  args.username is None:
-                if args.online == False:
-                    logger.error("首次启动需要设置一个游戏用户名！")
-                    logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
-                    logger.error("或者使用--online添加一个微软账号(正版账号)")
-                    sys.exit(1)
-                else:
-                    # 走正版
-                    account = MicrosoftAuthorized(self.username)
-                    self.username, self.uuid, self.accesstoken = account.user()
-                    # End
-                
-            # 如果有用户名, 说明是离线账号
+            user_conf = CONF / (args.username + ".json")
+
+            if user_conf.exists():
+                account = MicrosoftAuthorized(args.username)
             else:
-                #选择版本启动
-                self.username = args.username
-                self.uuid = get_uuid(self.username)
-                self.accesstoken = self.uuid
-                # End
+                logger.info("添加一个正版用户")
+                account = MicrosoftAuthorized()
 
-            self.online = args.online
+            self.username, self.uuid, self.accesstoken = account.user()
 
+            self.online = True
+
+        # 添加正版用户
+        elif args.username is None and args.online:
+
+            logger.info("添加一个正版用户")
+            account = MicrosoftAuthorized()
+            self.username, self.uuid, self.accesstoken = account.user()
+
+            self.online = True
+        
+        # 切换为一个离线用户
+        elif args.username and not args.online:
+            self.username = args.username
+            self.uuid = get_uuid(self.username)
+            self.accesstoken = self.uuid
+
+            self.online = False
+        
+        # 使用配置文件
+        else:
+            self.loadcfg()
+
+        
         self._v = None
 
         # 是否更新配置
@@ -99,6 +90,31 @@ class UserCFG:
                 self.jvm_args = args.jvm_args
         else:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
+    
+    def loadcfg(self):
+        if GAME_CONFIG.exists():
+            try:
+                self.user_data = get_dotdict(GAME_CONFIG)
+
+                self.username = self.user_data['username']
+                self.uuid = self.user_data['uuid']
+                self.accesstoken = self.user_data["accesstoken"]
+                self.currentversion = self.user_data['currentversion']
+                self.java_path = self.user_data['java-path']
+                self.jvm_args = self.user_data['jvm-args']
+                self.online = self.user_data['online']
+
+            except KeyError:
+                logger.error("{} 配置文件格式错误！已清理，请重新启动".format(GAME_CONFIG))
+                os.remove(GAME_CONFIG)
+                sys.exit(1)
+                # 解析出错 End
+
+        else:
+            logger.error("首次启动需要设置一个游戏用户名！")
+            logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
+            logger.error("或者使用--online添加一个微软账号(正版账号)")
+            sys.exit(1)
         
     @property
     def currentversion(self):
