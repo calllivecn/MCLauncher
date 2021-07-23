@@ -90,7 +90,10 @@ def main():
     # 更新游戏版本
     if args.select_version:
         # 选择游戏版本
-        usercfg.currentversion = select_local(mds.versions)
+        usercfg.currentversion = select_local(mds.versions, latest=False)
+    else:
+        # 选择游戏最新版本
+        usercfg.currentversion = select_local(mds.versions, latest=True)
 
     # 有更新保存配置，无更新不保存配置。
     usercfg.set_cfg()
