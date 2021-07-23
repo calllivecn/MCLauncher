@@ -89,6 +89,11 @@ class AuthorizedError(Exception):
     pass
 
 class MicrosoftAuthorized:
+    """
+    使用讲法：
+    1. account = microsoftAuthorized(username)
+    2. uesrnaem, uuid, accesstoken = account.user()
+    """
 
     # Minecraft ID
     CLIENT_ID="00000000402b5328"
@@ -357,6 +362,7 @@ class MicrosoftAuthorized:
             return DotDict()
     
     def save(self):
+        self.user_conf = CONF / (self.username + ".json")
         with open(self.user_conf, "w") as f:
             self.usercache.dump(f, ensure_ascii=False, indent=4)
 

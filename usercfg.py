@@ -45,11 +45,35 @@ class UserCFG:
                 logger.warning("{} 配置文件格式错误！已清理，请重新启动".format(GAME_CONFIG))
                 os.remove(GAME_CONFIG)
                 sys.exit(1)
-        elif args.username is None or args.online == False:
-            logger.error("首次启动需要设置一个游戏用户名！")
-            logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
-            logger.error("或者使用--online添加一个微软账号(正版账号)")
-            sys.exit(1)
+                # 解析出错 End
+            
+            if self.online:
+                # 走正版
+                account = MicrosoftAuthorized(self.username)
+                self.username, self.uuid, self.accesstoken = account.user()
+            #else:
+                # 选择版本后，启动
+
+        else:
+            if  args.username is None:
+                if args.online == False:
+                    logger.error("首次启动需要设置一个游戏用户名！")
+                    logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
+                    logger.error("或者使用--online添加一个微软账号(正版账号)")
+                    sys.exit(1)
+                else:
+                    # 走正版
+                    account = MicrosoftAuthorized(self.username)
+                    self.username, self.uuid, self.accesstoken = account.user()
+                    # End
+                
+            # 如果有用户名, 说明是离线账号
+            else:
+                #选择版本启动
+                self.username = args.username
+                self.uuid = get_uuid(self.username)
+                self.accesstoken = self.uuid
+                # End
 
             self.online = args.online
 
@@ -60,27 +84,22 @@ class UserCFG:
 
         if args.username:
             self.UPDATE_CFG = True
-            self.username = args.username
-            self.uuid = get_uuid(args.username)
-        
-        if args.java_path:
-            self.UPDATE_CFG = True
-            self.java_path = args.java_path
 
+        
+        if GAME_CONFIG.exists():
+            if args.java_path:
+                self.UPDATE_CFG = True
+                self.java_path = args.java_path
         else:
             self.java_path = "java"
 
-        if args.jvm_args:
-            self.UPDATE_CFG = True
-            self.jvm_args = args.jvm_args
+        if GAME_CONFIG.exists():
+            if args.jvm_args:
+                self.UPDATE_CFG = True
+                self.jvm_args = args.jvm_args
         else:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
         
-        if self.online:
-            account = MicrosoftAuthorized(self.username)
-            self.username, self.uuid, self.accesstoken = account.user()
-        
-
     @property
     def currentversion(self):
         return self._v
@@ -104,12 +123,7 @@ class UserCFG:
         self.user_data = DotDict()
         self.user_data['username'] = self.username
         self.user_data['uuid'] = self.uuid
-        if hasattr(self, "accesstoken"):
-            self.user_data['accesstoken'] = self.accesstoken
-        else:
-            self.accesstoken = self.uuid
-            self.user_data['accesstoken'] = self.uuid
-
+        self.user_data['accesstoken'] = self.accesstoken
         self.user_data['currentversion'] = self.currentversion
         self.user_data['java-path'] = self.java_path
         self.user_data['jvm-args'] = self.jvm_args

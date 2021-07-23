@@ -365,10 +365,14 @@ def install_select(vm):
             return snapshot_list[id_]
 
 
-def select_local(versions_path):
+def select_local(versions_path, latest=True):
     vs = os.listdir(versions_path)
     l_len = len(vs)
     vs.sort()
+
+    if latest:
+        return vs[0]
+
     for i in range(l_len):
         print("{}: {}".format(i, vs[i]))
     
