@@ -373,9 +373,9 @@ class MicrosoftAuthorized:
             return DotDict()
     
     def is_mc_expires(self):
-        # 没有过期
         logger.debug(f"is mc expres self.usercache.mc_timestamp: {self.usercache.mc_timestamp}")
-        if self.usercache.mc_expires_in + self.usercache.mc_timestamp + 1800 < int(time.time()):
+        # 没有过期
+        if (self.usercache.mc_expires_in + self.usercache.mc_timestamp - 1800) > int(time.time()):
             return False
         else:
             return True
