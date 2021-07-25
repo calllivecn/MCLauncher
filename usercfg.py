@@ -67,6 +67,10 @@ class UserCFG:
         else:
             self.loadcfg()
 
+            if self.online:
+                account = MicrosoftAuthorized(self.username)
+                self.username, self.uuid, self.accesstoken = account.user()
+
         
         self._v = None
 

@@ -55,7 +55,7 @@ def main():
     setLevel(args.verbose)
 
     if args.verbose >= 2:
-        logger.debug("args:", args)
+        logger.debug(f"args: {args}")
 
     if args.install_game:
 
