@@ -106,7 +106,7 @@ class MicrosoftAuthorized:
         if self.username != None:
             self.user_conf = CONF / (self.username + ".json")
             # 有token(xbox), 且没过期
-            self.isexpires()
+            self.is_xbox_expires()
 
         if self.usercache:
             xsts = self.get_xsts_token(self.usercache.xbox_token)
@@ -127,27 +127,38 @@ class MicrosoftAuthorized:
         xsts_token = xsts["Token"]
         xsts_uhs = xsts["DisplayClaims"]["xui"][0]["uhs"]
 
-        # mc access token
-        mc_j = self.get_mc_token(xsts_token, xsts_uhs)
 
-        # check microsoft acounnts 是否拥有MC, 否则退出。
-        if not self.check_mc(mc_j["access_token"]):
-            msg = "你的微软账号没有MC"
-            logger.error(msg)
-            raise AuthorizedError(msg)
+        # MC accesstoken expires 8小时
+        if self.is_mc_expires():
+
+            logger.debug("MC accesstoken 过期，重新请求。")
+
+            # mc access token
+            mc_j = self.get_mc_token(xsts_token, xsts_uhs)
+
+            # check microsoft acounnts 是否拥有MC, 否则退出。
+            if not self.check_mc(mc_j["access_token"]):
+                msg = "你的微软账号没有MC"
+                logger.error(msg)
+                raise AuthorizedError(msg)
         
-        # 添加 MC 启动的 access_token
-        profile = self.get_mc_profile(mc_j["access_token"])
+            # 添加 MC 启动的 access_token
+            profile = self.get_mc_profile(mc_j["access_token"])
 
-        # MC username
-        self.username = profile["name"]
+            # MC username
+            self.username = profile["name"]
 
-        self.usercache.username = profile["name"]
-        self.usercache.uuid = profile["id"]
-        self.usercache.mc_access_token = mc_j["access_token"]
+            self.usercache.username = profile["name"]
+            self.usercache.uuid = profile["id"]
+            self.usercache.mc_access_token = mc_j["access_token"]
+            self.usercache.mc_timestamp = int(time.time())
 
-        # 落盘
-        self.save()
+            # 落盘
+            self.save()
+
+        # MC accesstoken 没过期。直接使用
+        else:
+            logger.debug("MC accesstoken 没过期直接使用。")
     
     def user(self):
         return self.usercache.username, self.usercache.uuid, self.usercache.mc_access_token
@@ -342,7 +353,7 @@ class MicrosoftAuthorized:
 
 
     # <username>.json 过期没有
-    def isexpires(self):
+    def is_xbox_expires(self):
         # dotdict = DotDict()
         if self.user_conf.exists() and self.user_conf.is_file():
             with open(self.user_conf) as f:
@@ -361,6 +372,14 @@ class MicrosoftAuthorized:
         else:
             return DotDict()
     
+    def is_mc_expires(self):
+        # 没有过期
+        logger.debug(f"is mc expres self.usercache.mc_timestamp: {self.usercache.mc_timestamp}")
+        if self.usercache.mc_expires_in + self.usercache.mc_timestamp + 1800 < int(time.time()):
+            return False
+        else:
+            return True
+
     def save(self):
         self.user_conf = CONF / (self.username + ".json")
         with open(self.user_conf, "w") as f:
