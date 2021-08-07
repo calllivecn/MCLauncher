@@ -131,7 +131,7 @@ class MicrosoftAuthorized:
         # MC accesstoken expires 8小时
         if self.is_mc_expires():
 
-            logger.debug("MC accesstoken 过期，重新请求。")
+            logger.debug("MC accesstoken 首次请求OR过期重新请求。")
 
             # mc access token
             mc_j = self.get_mc_token(xsts_token, xsts_uhs)
@@ -373,7 +373,12 @@ class MicrosoftAuthorized:
             return DotDict()
     
     def is_mc_expires(self):
+
         logger.debug(f"is mc expres self.usercache.mc_timestamp: {self.usercache.mc_timestamp}")
+
+        if self.usercache.mc_expires_in is None:
+            return True
+
         # 没有过期
         if (self.usercache.mc_expires_in + self.usercache.mc_timestamp - 1800) > int(time.time()):
             return False
