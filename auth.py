@@ -74,10 +74,6 @@ def req(url, param=None, method="GET", header={}, content="application/json"):
 
     j = request.urlopen(r).read()
 
-    # 调试时，使用
-    with open("post.json", "wb") as f:
-        f.write(j)
-
     result = json.loads(j)
 
     return result
@@ -181,7 +177,9 @@ class MicrosoftAuthorized:
         code = ""
         while code == "":
             #login_url = getpass.getpass("成功登录后的浏览器URL: ")
-            login_url = input("成功登录后的浏览器URL: ")
+            print("如果之前登录过，浏览器可能已经获取到了URL类似:")
+            print("https://login.live.com/oauth20_desktop.srf?code=M.R3_BAY.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx&lc=xxxx")
+            login_url = input("将成功登录后的浏览器URL复制粘贴到这: ")
             re_code =  find_code.match(login_url)
 
             if re_code:

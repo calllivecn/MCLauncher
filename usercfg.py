@@ -29,10 +29,10 @@ class UserCFG:
 
     def __init__(self, args):
 
-        self.loadcfg()
-
         # 切换正版用户
         if args.username and args.online:
+
+            self.loadcfg()
 
             user_conf = CONF / (args.username + ".json")
 
@@ -48,6 +48,7 @@ class UserCFG:
 
         # 添加正版用户
         elif args.username is None and args.online:
+            self.loadcfg()
 
             logger.info("添加一个正版用户")
             account = MicrosoftAuthorized()
@@ -57,6 +58,8 @@ class UserCFG:
         
         # 切换为一个离线用户
         elif args.username and not args.online:
+            self.loadcfg()
+
             self.username = args.username
             self.uuid = get_uuid(self.username)
             self.accesstoken = self.uuid
@@ -71,7 +74,6 @@ class UserCFG:
                 account = MicrosoftAuthorized(self.username)
                 self.username, self.uuid, self.accesstoken = account.user()
 
-        
         self._v = None
 
         # 是否更新配置
@@ -95,6 +97,7 @@ class UserCFG:
         else:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
     
+
     def loadcfg(self):
         if GAME_CONFIG.exists():
             try:
@@ -119,7 +122,7 @@ class UserCFG:
             logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
             logger.error("或者使用--online添加一个微软账号(正版账号)")
             sys.exit(1)
-        
+
     @property
     def currentversion(self):
         return self._v
