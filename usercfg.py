@@ -68,6 +68,13 @@ class UserCFG:
         
         # 使用配置文件
         else:
+
+            if not GAME_CONFIG.exists():
+                logger.error("首次启动需要设置一个游戏用户名！")
+                logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
+                logger.error("或者使用--online添加一个微软账号(正版账号)")
+                sys.exit(1)
+
             self.loadcfg()
 
             if self.online:
@@ -97,7 +104,6 @@ class UserCFG:
         else:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
     
-
     def loadcfg(self):
         if GAME_CONFIG.exists():
             try:
@@ -117,11 +123,6 @@ class UserCFG:
                 sys.exit(1)
                 # 解析出错 End
 
-        else:
-            logger.error("首次启动需要设置一个游戏用户名！")
-            logger.error("使用--username添加一个离线账号(同时也是MC角色用户名！)")
-            logger.error("或者使用--online添加一个微软账号(正版账号)")
-            sys.exit(1)
 
     @property
     def currentversion(self):
