@@ -357,7 +357,8 @@ class MicrosoftAuthorized:
             with open(self.user_conf) as f:
                 self.usercache.load(f)
         else:
-            return DotDict()
+            self.usercache = DotDict()
+            return
 
         # 把拿到 的UTC过期时间 转化为 本地时间
         expires = self.usercache.xbox_expires_in.split(".")[0]
@@ -365,10 +366,13 @@ class MicrosoftAuthorized:
 
         # code 没过期
         #if self.usercache.timestamp + self.usercache.expires_in > (int(time.time() - 600)):
-        if datetime.now(timezone.utc) >= (expires_in - timedelta(minutes=600)):
-            return self.usercache
+        if datetime.now(timezone.utc) <= (expires_in - timedelta(minutes=600)):
+            logger.debug(f"xbox 没过期。")
         else:
-            return DotDict()
+            logger.debug(f"xbox 过期。")
+            self.usercache = DotDict()
+        
+        logger.debug(f"is_xbox_expires: {self.usercache=}")
     
     def is_mc_expires(self):
 
