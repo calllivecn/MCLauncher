@@ -103,6 +103,11 @@ class UserCFG:
                 self.jvm_args = args.jvm_args
         else:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
+        
+        if GAME_CONFIG.exists():
+            if args.resolution:
+                self.UPDATE_CFG = True
+                self.resolution = args.resolution
     
     def loadcfg(self):
         if GAME_CONFIG.exists():
@@ -116,6 +121,9 @@ class UserCFG:
                 self.java_path = self.user_data['java-path']
                 self.jvm_args = self.user_data['jvm-args']
                 self.online = self.user_data['online']
+
+                if self.user_data.resolution:
+                    self.resolution = self.user_data.resolution
 
             except KeyError:
                 logger.error("{} 配置文件格式错误！已清理，请重新启动".format(GAME_CONFIG))
@@ -152,6 +160,9 @@ class UserCFG:
         self.user_data['java-path'] = self.java_path
         self.user_data['jvm-args'] = self.jvm_args
         self.user_data["online"] = self.online
+
+        if self.resolution:
+            self.user_data['resolution'] = self.resolution
 
         # 如果有更新，就保存
         if self.UPDATE_CFG:

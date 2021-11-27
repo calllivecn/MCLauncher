@@ -33,7 +33,7 @@ from logs import logger
 class MCL:
 
 
-    def __init__(self, username, uuid, accesstoken, mds):
+    def __init__(self, username, uuid, accesstoken, mds, width=None, height=None):
         
         self.username = username
         self.uuid = uuid
@@ -57,6 +57,9 @@ class MCL:
         self.minecraft_args = []
         
         self.assets = mds.assets
+
+        self.height = height
+        self.width = width
 
         self.__get_gameDir()
 
@@ -322,12 +325,7 @@ class MCL:
                     # 'user_type': 'legacy',
                     'version_type': self.mc_json.get('type'),
                     }
-
-        """
-        'height': 480 , # height ,
-        'width': 800 , # widht 
-        }
-        """
+        
         self.minecraft_args = []
         for option in mc_args:
             if option.startswith("${") and option.endswith("}"):
@@ -337,6 +335,12 @@ class MCL:
 
             elif option.startswith("--"):
                 self.minecraft_args.append(option)
+
+        if self.height is not None and self.width is not None:
+            self.minecraft_args.append('--height')
+            self.minecraft_args.append(self.height) 
+            self.minecraft_args.append('--width')
+            self.minecraft_args.append(self.width)
 
         #self.minecraft_args = mc_args.format(**minecraft_args_build_dict)
         #self.minecraft_args = self.minecraft_args.split()

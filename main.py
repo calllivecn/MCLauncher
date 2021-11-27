@@ -33,6 +33,8 @@ def parse_args():
 
     parse.add_argument("--select-version", action="store_true", help="选择游戏版本。（默认启动本地最新版）")
 
+    parse.add_argument("--resolution", action="store", help="设置游戏初始窗口大小, 例如：1920x1080（默认自动）")
+
     parse.add_argument("--java-path", action="store", help="指定 java 路径")
 
     parse.add_argument("--jvm-args", action="store", help="设置 jvm 参数")
@@ -97,8 +99,14 @@ def main():
     # 有更新保存配置，无更新不保存配置。
     usercfg.set_cfg()
 
+    if usercfg.resolution is None:
+        height = None
+        width = None
+    else:
+        height, width = usercfg.resolution.split("x")
+
     mds.select_version_id(usercfg.currentversion)
-    mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds)
+    mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width)
 
     logger.info(f"当前用户名：{usercfg.username}")
     
