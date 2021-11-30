@@ -29,6 +29,8 @@ class UserCFG:
 
     def __init__(self, args):
 
+        self._v = None
+
         # 切换正版用户
         if args.username and args.online:
 
@@ -81,7 +83,6 @@ class UserCFG:
                 account = MicrosoftAuthorized(self.username)
                 self.username, self.uuid, self.accesstoken = account.user()
 
-        self._v = None
 
         # 是否更新配置
         self.UPDATE_CFG = False
@@ -108,11 +109,17 @@ class UserCFG:
             if args.resolution:
                 self.UPDATE_CFG = True
                 self.resolution = args.resolution
+
+        if GAME_CONFIG.exists():
+            if args.select_version:
+                self.UPDATE_CFG = True
+    
     
     def loadcfg(self):
         if GAME_CONFIG.exists():
             try:
                 self.user_data = get_dotdict(GAME_CONFIG)
+                logger.debug(f"self.user_data: {self.user_data}")
 
                 self.username = self.user_data['username']
                 self.uuid = self.user_data['uuid']
@@ -138,7 +145,6 @@ class UserCFG:
     
     @currentversion.setter
     def currentversion(self, v):
-        self.UPDATE_CFG = True
         self._v = v
 
     @property

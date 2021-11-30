@@ -371,7 +371,7 @@ def select_local(versions_path, latest=True):
     vs.sort()
 
     if latest:
-        return vs[0]
+        return vs[-1]
 
     for i in range(l_len):
         print("{}: {}".format(i, vs[i]))

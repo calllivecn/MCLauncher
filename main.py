@@ -58,7 +58,7 @@ def main():
 
     if args.verbose >= 2:
         logger.debug(f"args: {args}")
-
+    
     if args.install_game:
 
         if args.verbose <= 1:
@@ -92,9 +92,15 @@ def main():
     if args.select_version:
         # 选择游戏版本
         usercfg.currentversion = select_local(mds.versions, latest=False)
-    else:
+
+    elif usercfg.currentversion is None:
+        logger.debug(f"currentversion is None ... --> {usercfg.currentversion}")
+        usercfg.currentversion = select_local(mds.versions, latest=False)
+
+    # else:
         # 选择游戏最新版本
-        usercfg.currentversion = select_local(mds.versions, latest=True)
+        # usercfg.currentversion = select_local(mds.versions, latest=True)
+    
 
     # 有更新保存配置，无更新不保存配置。
     usercfg.set_cfg()
@@ -106,7 +112,14 @@ def main():
         height, width = usercfg.resolution.split("x")
 
     mds.select_version_id(usercfg.currentversion)
-    mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width)
+
+    if args.verbose >= 3:
+        # debug = True
+        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width, debug=True)
+    else:
+        debug = False
+        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width)
+
 
     logger.info(f"当前用户名：{usercfg.username}")
     

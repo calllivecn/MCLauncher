@@ -33,7 +33,7 @@ from logs import logger
 class MCL:
 
 
-    def __init__(self, username, uuid, accesstoken, mds, width=None, height=None):
+    def __init__(self, username, uuid, accesstoken, mds, width=None, height=None, debug=False):
         
         self.username = username
         self.uuid = uuid
@@ -60,6 +60,8 @@ class MCL:
 
         self.height = height
         self.width = width
+
+        self.debug = debug
 
         self.__get_gameDir()
 
@@ -94,6 +96,10 @@ class MCL:
         self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
         logger.info("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
+
+        if self.debug:
+            sys.exit(0)
+
         try:
             run(self.launcher_cmd, check=True)
         except CalledProcessError as e:
