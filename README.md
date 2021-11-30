@@ -51,6 +51,9 @@ CHANGELOG 2020-08-05：
 	# 首次启动
 	python3 MCLahuncher.pyz --username vii
 
+	# 使用微软账号登录。 (这会打开你的默认浏览器，让你登录。登录后，需要复制url到这里，继续。)
+	python3 MCLahuncher.pyz --online
+
 	# 之后启动
 	python3 MCLahuncher.pyz
 
