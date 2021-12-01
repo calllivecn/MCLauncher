@@ -7,17 +7,12 @@
 
 import os
 import sys
-from pathlib import Path
-
 
 from logs import logger
 from initconfig import CONF, GAME_CONFIG
 from auth import MicrosoftAuthorized
 from funcs import (
-    get_json,
     get_uuid,
-    select_local,
-    set_json,
     DotDict,
     get_dotdict,
     set_dotdict,
@@ -31,6 +26,9 @@ class UserCFG:
 
         self._v = None
         self.resolution = None
+
+        # 是否更新配置
+        self.UPDATE_CFG = False
 
         # 切换正版用户
         if args.username and args.online:
@@ -85,13 +83,9 @@ class UserCFG:
                 self.username, self.uuid, self.accesstoken = account.user()
 
 
-        # 是否更新配置
-        self.UPDATE_CFG = False
-
         if args.username:
             self.UPDATE_CFG = True
 
-        
         if GAME_CONFIG.exists():
             if args.java_path:
                 self.UPDATE_CFG = True
@@ -138,6 +132,8 @@ class UserCFG:
                 os.remove(GAME_CONFIG)
                 sys.exit(1)
                 # 解析出错 End
+        else:
+            self.UPDATE_CFG = True
 
 
     @property

@@ -91,11 +91,13 @@ def main():
     # 更新游戏版本
     if args.select_version:
         # 选择游戏版本
-        usercfg.currentversion = select_local(mds.versions, latest=False)
+        # usercfg.currentversion = select_local(mds.versions, latest=False)
+        usercfg.currentversion = select_local(mds.versions)
 
     elif usercfg.currentversion is None:
         logger.debug(f"currentversion is None ... --> {usercfg.currentversion}")
-        usercfg.currentversion = select_local(mds.versions, latest=False)
+        # usercfg.currentversion = select_local(mds.versions, latest=False)
+        usercfg.currentversion = select_local(mds.versions)
 
     # else:
         # 选择游戏最新版本
@@ -117,7 +119,7 @@ def main():
         # debug = True
         mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width, debug=True)
     else:
-        debug = False
+        # debug = False
         mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width)
 
 
