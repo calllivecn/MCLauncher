@@ -3,7 +3,11 @@
 目前还有几个问题：
 
 	1. 有了GUI， 还没接入。
-	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)： 1.17.x, 1.16.x, 1.15.x, 1.14.x, 1.13.x (minimumLauncherVersion: 21)
+	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)： 1.18.x, 1.17.x, 1.16.x, 1.15.x, 1.14.x, 1.13.x (minimumLauncherVersion: 21)
+
+CHANGELOG 2021-12-01：
+
+	1. 多个小bug修复。
 
 CHANGELOG 2021-08-07：
 
@@ -26,7 +30,7 @@ CHANGELOG 2020-08-06：
 
 CHANGELOG 2020-08-05：
 
-	1. 指定一个游戏版本进行导出(--export-game)
+	1. 选择一个游戏版本进行导出(--export-game)
 	2. 游戏资源--check-game添加。
 	3. 支持选择(--select-version)游戏版本启动, 默认启动本地最新版。
 
@@ -48,19 +52,22 @@ CHANGELOG 2020-08-05：
 
 启动游戏：
 ```shell
-	# 首次启动
+	# 首次启动(使用本地账号)
 	python3 MCLahuncher.pyz --username vii
 
-	# 使用微软账号登录。 (这会打开你的默认浏览器，让你登录。登录后，需要复制url到这里，继续。)
+	# 使用微软账号登录。 (这会打开你的默认浏览器，让你登录微软账号。登录后，需要复制url到这里，按回车继续。)
 	python3 MCLahuncher.pyz --online
 
 	# 之后启动
 	python3 MCLahuncher.pyz
 
-	# 选择游戏版本
+	# 切换游戏版本
 	python3 MCLahuncher.pyz --select-version
 
-	# 修改用户名
+	# 修改本地用户名
 	python3 MCLahuncher.pyz --username <名字>
+
+	# 切换微软用户名
+	python3 MCLahuncher.pyz --online --username <名字>
 ```
 
