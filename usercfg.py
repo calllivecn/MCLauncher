@@ -30,6 +30,7 @@ class UserCFG:
     def __init__(self, args):
 
         self._v = None
+        self.resolution = None
 
         # 切换正版用户
         if args.username and args.online:
@@ -106,7 +107,7 @@ class UserCFG:
             self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
         
         if GAME_CONFIG.exists():
-            if args.resolution:
+            if self.resolution:
                 self.UPDATE_CFG = True
                 self.resolution = args.resolution
 
