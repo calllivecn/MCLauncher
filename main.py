@@ -111,16 +111,16 @@ def main():
         height = None
         width = None
     else:
-        height, width = usercfg.resolution.split("x")
+        width, height  = usercfg.resolution.split("x")
 
     mds.select_version_id(usercfg.currentversion)
 
     if args.verbose >= 3:
         # debug = True
-        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width, debug=True)
+        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, width, height, debug=True)
     else:
         # debug = False
-        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, height, width)
+        mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, width, height)
 
 
     logger.info(f"当前用户名：{usercfg.username}")
