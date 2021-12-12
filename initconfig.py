@@ -29,7 +29,7 @@ from funcs import joinpath
 from logs import logger
 
 LAUNCHER = "MCL"
-LAUNCHER_VERSION = "v1.5.3"
+LAUNCHER_VERSION = "v1.7-pre"
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
