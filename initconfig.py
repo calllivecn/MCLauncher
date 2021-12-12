@@ -28,10 +28,8 @@ from platform import system #, process
 from funcs import joinpath
 from logs import logger
 
-
 LAUNCHER = "MCL"
-LAUNCHER_VERSION = "v1.5"
-
+LAUNCHER_VERSION = "v1.5.3"
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
@@ -90,10 +88,14 @@ class McDirStruct:
 
         if version_id is None:
             vers = os.listdir(self.versions)
-
             if len(vers) == 0:
                 logger.error("{} 没有游戏。".format(self.gameDir))
                 sys.exit(1)
+
+            elif version_id not in vers:
+                logger.warning(f"选择的游戏版本不存在")
+                sys.exit(1)
+
             else:
                 logger.info("当前版本：{}".format(vers))
                 vers.sort()

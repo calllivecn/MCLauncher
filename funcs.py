@@ -45,6 +45,7 @@ from logs import logger
 
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net" # + hash_val[0:2] + "/" + hash_val
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
+USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
 
 BLOCK = 1<<14 # 16k
 
