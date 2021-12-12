@@ -46,17 +46,21 @@ class MCL:
         self.indexes = mds.indexes
         self.objects = mds.objects
         self.libraries = mds.libraries
-
         self.versions = mds.versions
-
         self.version_id = mds.version_id
+        self.assets = mds.assets
+
+        if "fabric" in self.version_id:
+            self.fabric_init()
+
+        self.client_jar = mds.client_jar
+        self.client_json = mds.client_json
 
         self.Djava_library_path = ''
 
         self.jvm_args = []
         self.minecraft_args = []
         
-        self.assets = mds.assets
 
         self.height = height
         self.width = width
@@ -65,8 +69,6 @@ class MCL:
 
         self.__get_gameDir()
 
-        self.client_jar = mds.client_jar
-        self.client_json = mds.client_json
 
         self.mc_json = get_json(self.client_json)
 
@@ -74,10 +76,6 @@ class MCL:
 
         self.timestamp = str(time.time_ns())
         self.__get_Djava_library_path()
-
-        self.get_classpath()
-
-        self.get_jvm_args()
 
         # 黙认 java 路径
         # self.java_path = "java"
@@ -93,7 +91,18 @@ class MCL:
         # 注册清理函数
         atexit.register(self.clear_natives)
 
-        self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
+        if "fabric" in self.version_id:
+            self.get_classpath()
+            self.fabric()
+            self.get_jvm_args()
+            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + self.fabric_arguments_jvm + [self.fabric_mainClass] + self.minecraft_args
+        else:
+
+            self.get_classpath()
+            self.get_jvm_args()
+
+            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
+
 
         logger.info("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
 
@@ -105,6 +114,35 @@ class MCL:
         except CalledProcessError as e:
             logger.error(e)
             sys.exit(1)
+    
+    #  添加 fabric 的支持
+    def fabric(self):
+        self.jvm_args = [f"-Dminecraft.client.jar={self.client_jar}"] + self.jvm_args
+        self.classpath = self.fabric_libraries_cp + self.classpath
+
+    def fabric_init(self):
+        self.fabric_version_id = self.version_id
+        fabric_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
+        self.fabric_json = get_json(fabric_json)
+
+        # 拿到对应的MC client_jar
+        self.mds.select_version_id(self.fabric_json["inheritsFrom"])
+
+        self.fabric_mainClass = self.fabric_json["mainClass"]
+        self.fabric_arguments_jvm = self.fabric_json["arguments"]["jvm"]
+
+        self.fabric_libraries_cp = []
+        # 解析 fabric_libraries 
+        self.fabric_libraries = self.fabric_json["libraries"]
+        for lib in self.fabric_libraries:
+            libpath, libname, libversion = lib["name"].split(":")
+            libpath = libpath.replace(".", os.sep)
+            cp = joinpath(self.libraries, libpath, libname, libversion, libname + "-" + libversion + ".jar")
+            if path.exists(cp):
+                self.fabric_libraries_cp.append(cp)
+            else:
+                logger.warning(f"fabric libraries {cp} not exists")
+                sys.exit(1)
     
     def set_java_path(self, java_path):
         self.java_path = java_path
@@ -238,10 +276,11 @@ class MCL:
                                         self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
                         
 
-        cp = ''
+        cp = []
         for cp_class in cp_path:
             if path.exists(cp_class):
-                cp += cp_class + path.pathsep
+                # cp += cp_class + path.pathsep
+                cp.append(cp_class)
             else:
                 logger.warning('不存在：{}'.format(cp_class))
 
@@ -357,20 +396,6 @@ class MCL:
         
         jvms = []
 
-        def jvms_for(value):
-
-            nonlocal jvms
-
-            if isinstance(value, str):
-                value = value.replace('${','{') 
-                jvms += value.replace('}', '}') + " "
-
-            elif isinstance(value, list):
-
-                for jvm_arg in option_dict.get("value"):
-                    jvm_arg = jvm_arg.replace('${', '{')
-                    jvms += jvm_arg.replace('}','}') + ""
-        
         jvm_list = self.mc_json.get("arguments").get("jvm")
 
         allow = True
@@ -433,13 +458,8 @@ class MCL:
         tmp_dict = {'natives_directory': self.Djava_library_path,
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
-        'classpath' : self.classpath + self.client_jar
+        'classpath' : os.pathsep.join(self.classpath) + os.pathsep + self.client_jar
         }
-
-        #logger.debug("jvm 参数(解析前)：{}".format(jvms))
-        #logger.debug("jvm 参数(解析前) tmp_dict：{}".format(pprint.pformat(tmp_dict)))
-        #self.jvm_args = jvms.format(**tmp_dict)
-        #self.jvm_args = self.jvm_args.split()
 
         for option in jvms:
             logger.debug("解析 jvm 参数: {}".format(option))
