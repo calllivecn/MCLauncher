@@ -11,6 +11,7 @@ import time
 import pprint
 import atexit
 from os import path
+from urllib import parse
 from shutil import rmtree
 from zipfile import ZipFile
 from subprocess import run, CalledProcessError
@@ -141,8 +142,15 @@ class MCL:
             if path.exists(cp):
                 self.fabric_libraries_cp.append(cp)
             else:
-                logger.warning(f"fabric libraries {cp} not exists")
-                sys.exit(1)
+                "https://maven.fabricmc.net/net/fabricmc/tiny-mappings-parser/0.3.0%2Bbuild.17/tiny-mappings-parser-0.3.0%2Bbuild.17.jar"
+                # 创建目录。。。哎，麻烦。
+                fillpath(cp)
+
+                url = lib["url"] + parse.quote("/".join([libpath, libname, libversion, libname + "-" + libversion + ".jar"]))
+                logger.warning(f"fabric libraries {cp} not exists... download:{url}")
+                wget(url, cp)
+                self.fabric_libraries_cp.append(cp)
+                # sys.exit(1)
     
     def set_java_path(self, java_path):
         self.java_path = java_path
