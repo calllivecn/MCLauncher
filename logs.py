@@ -7,8 +7,10 @@
 __all__ = ["logger", "setLevel"]
 
 
+from sqlite3 import Time
 import sys
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from os import path
 
 logger = logging.getLogger("MCL")
@@ -28,14 +30,16 @@ logfilename, ext = path.splitext(sys.argv[0])
 
 logfilename = logfilename + ".logs"
 
-logsname = logging.FileHandler(logfilename, "a")
+#logsname = logging.FileHandler(logfilename, "a")
+logsname = TimedRotatingFileHandler(logfilename, when="D",interval=1, backupCount=30)
+
+
 logsname.setFormatter(fmt)
 
 logger.addHandler(logsname)
 
 
 logger.setLevel(logging.WARN)
-
 
 
 def setLevel(level):
