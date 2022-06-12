@@ -186,8 +186,9 @@ class MCL:
                     zf.extract(name, target)
 
     def clear_natives(self):
-        logger.debug(f"清理native库: {self.natives_dll_path}")
-        rmtree(self.natives_dll_path)
+        if hasattr(self, "natives_dll_path"):
+            logger.debug(f"清理native库: {self.natives_dll_path}")
+            rmtree(self.natives_dll_path)
 
     def get_classpath(self):
     
