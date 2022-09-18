@@ -43,9 +43,17 @@ from queue import Queue
 from logs import logger
 
 
+HTTPX=True
+try:
+    import httpx
+except ModuleNotFoundError:
+    HTTPX=False
+
+
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net" # + hash_val[0:2] + "/" + hash_val
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
+USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"}
 
 BLOCK = 1<<14 # 16k
 
@@ -100,23 +108,19 @@ def fillpath(realpath):
 def joinpath(*args):
     return os.sep.join(args)
 
-def wget(url, savepath):
-    block = 1<<14 # 16k
 
-    # headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
+def wget(url, savepath):
     req = request.Request(url, headers=USER_AGENT)
     response = request.urlopen(req, timeout=15)
 
     sha = sha1()
     
     with open(savepath, "wb") as f:
-        for data in iter(partial(response.read, block), b""):
+        for data in iter(partial(response.read, BLOCK), b""):
             f.write(data)
             sha.update(data)
 
     return sha.hexdigest()
-
-
 
 
 class Downloader:
@@ -129,8 +133,6 @@ class Downloader:
 
         self.threads = []
 
-        self.func
-
         self.count = 0
 
         logger.debug("启动下载线程：")
@@ -141,26 +143,31 @@ class Downloader:
             th.start()
             self.threads.append(th)
 
+    def wget(self, url, savepath):
+        """
+        兼容 Downloader2()
+        """
+        return wget(url, savepath)
 
     def submit(self, task):
+        """
+        task: (url, savpath)
+        """
         logger.debug("提交任务：{}".format(task))
         self.count += 1
         self.taskqueue.put(task)
             
     def func(self):
 
-        # headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"}
-        
         while True:
 
             url, savepath = self.taskqueue.get()
 
-            block = 1<<14 # 16k
             try:
                 req = request.Request(url, headers=USER_AGENT)
                 with request.urlopen(req, timeout=60) as response:
                     with open(savepath, "wb") as f:
-                        for data in iter(partial(response.read, block), b""):
+                        for data in iter(partial(response.read, BLOCK), b""):
                             f.write(data)
 
             except socket.timeout:
@@ -188,7 +195,46 @@ class Downloader:
         self.taskqueue.join()
 
 
-dler = Downloader()
+class Downloader2:
+    """
+    使用httpx 的下载器，支持下载池和http2
+    """
+
+    def __init__(self):
+        self.client = httpx.Client(http2=True)
+
+    def close(self):
+        self.client.close()
+
+    def wget(self, url, savepath):
+        logger.debug(f"下载：{url} -- {savepath}")
+        sha = sha1()
+        with self.client.stream("GET", url, headers=USER_AGENT) as stream:
+            with open(savepath, "wb") as f:
+                for data in stream.iter_bytes(BLOCK):
+                    f.write(data)
+                    sha.update(data)
+        return sha.hexdigest()
+    
+    def submit(self, task):
+        """
+        task: (url, savpath)
+        """
+        url, savepath = task
+        self.wget(url, savepath)
+    
+    def join(self):
+        """
+        兼容Downloader()
+        """
+        self.close()
+
+
+if HTTPX:
+    dler = Downloader2()
+else:
+    dler = Downloader()
+
 
 class DotDict(dict):
     def __init__(self, *args, **kwargs):
