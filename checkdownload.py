@@ -54,7 +54,7 @@ def install_game():
         logger.info("{} 已存在 ... 跳过".format(mds.client_jar))
     else:
         # wget(client.get("url"), mds.client_jar)
-        dler.wget(client.get("url"), mds.client_jar)
+        dler.submit((client.get("url"), mds.client_jar))
 
     # 开始下载 server.jar
     server = downloads.get("server")
@@ -65,7 +65,7 @@ def install_game():
         logger.info("{} 已存在 ... 跳过".format(mds.server_jar))
     else:
         # wget(server.get("url"), mds.server_jar)
-        dler.wget(server.get("url"), mds.server_jar)
+        dler.submit((server.get("url"), mds.server_jar))
 
 
 
@@ -159,7 +159,7 @@ def check_game(export_target=None):
     else:
         logger.info("下载 client : {}".format(mds.client_jar))
         # wget(client.get("url"), mds.client_jar)
-        dler.wget(client.get("url"), mds.client_jar)
+        dler.submit((client.get("url"), mds.client_jar))
 
     # 开始下载 server.jar
     server = downloads.get("server")
@@ -170,7 +170,7 @@ def check_game(export_target=None):
     else:
         logger.info("check fail 下载 server: {}".format(mds.server_jar))
         # wget(server.get("url"), mds.server_jar)
-        dler.wget(server.get("url"), mds.server_jar)
+        dler.submit((server.get("url"), mds.server_jar))
 
 
 
@@ -221,8 +221,7 @@ def check_game(export_target=None):
     else:
         logger.info("check fail 下载: {}".format(assetindex_realpath))
         # wget(assetindex.get("url"), assetindex_realpath)
-        dler.wget(assetindex.get("url"), assetindex_realpath)
-
+        dler.submit((assetindex.get("url"), assetindex_realpath))
 
 
     resources = get_json(assetindex_realpath)

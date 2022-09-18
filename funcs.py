@@ -11,7 +11,6 @@ __all__ = (
             "get_uuid",
             "get_Duser_home",
             "getcp",
-            "wget",
             "fillpath",
             "joinpath",
             "get_resources",
@@ -109,7 +108,7 @@ def joinpath(*args):
     return os.sep.join(args)
 
 
-def wget(url, savepath):
+def wget_sha(url, savepath):
     req = request.Request(url, headers=USER_AGENT)
     response = request.urlopen(req, timeout=15)
 
@@ -129,6 +128,12 @@ class Downloader:
     """
     def __init__(self, worker=20):
 
+        self.worker = worker
+
+        if HTTPX:
+            limits = httpx.Limits(max_keepalive_connections=self.worker)
+            self.Client = httpx.Client(http2=True, limits=limits)
+
         self.taskqueue = Queue(100)
 
         self.threads = []
@@ -136,18 +141,35 @@ class Downloader:
         self.count = 0
 
         logger.debug("启动下载线程：")
-        for _ in range(worker):
+        for _ in range(self.worker):
 
             th = Thread(target=self.func, daemon=True)
             logger.debug("线程：{}".format(th.name))
             th.start()
             self.threads.append(th)
 
+
     def wget(self, url, savepath):
-        """
-        兼容 Downloader2()
-        """
-        return wget(url, savepath)
+        if HTTPX:
+            self.client(url, savepath)
+        else:
+            self.wget2(url, savepath)
+
+
+    def wget2(self, url, savepath):
+        req = request.Request(url, headers=USER_AGENT)
+        with request.urlopen(req, timeout=60) as response:
+            with open(savepath, "wb") as f:
+                for data in iter(partial(response.read, BLOCK), b""):
+                    f.write(data)
+
+
+    def client(self, url, savepath):
+        with self.Client.stream("GET", url, headers=USER_AGENT) as stream:
+            with open(savepath, "wb") as f:
+                for data in stream.iter_bytes(BLOCK):
+                    f.write(data)
+
 
     def submit(self, task):
         """
@@ -156,7 +178,8 @@ class Downloader:
         logger.debug("提交任务：{}".format(task))
         self.count += 1
         self.taskqueue.put(task)
-            
+
+
     def func(self):
 
         while True:
@@ -164,11 +187,10 @@ class Downloader:
             url, savepath = self.taskqueue.get()
 
             try:
-                req = request.Request(url, headers=USER_AGENT)
-                with request.urlopen(req, timeout=60) as response:
-                    with open(savepath, "wb") as f:
-                        for data in iter(partial(response.read, BLOCK), b""):
-                            f.write(data)
+                if HTTPX:
+                    self.client(url, savepath)
+                else:
+                    self.wget2(url, savepath)
 
             except socket.timeout:
                 logger.warning("下载超时：{}".format(url))
@@ -194,46 +216,11 @@ class Downloader:
         logger.debug("join 下载队列。")
         self.taskqueue.join()
 
-
-class Downloader2:
-    """
-    使用httpx 的下载器，支持下载池和http2
-    """
-
-    def __init__(self):
-        self.client = httpx.Client(http2=True)
-
-    def close(self):
-        self.client.close()
-
-    def wget(self, url, savepath):
-        logger.debug(f"下载：{url} -- {savepath}")
-        sha = sha1()
-        with self.client.stream("GET", url, headers=USER_AGENT) as stream:
-            with open(savepath, "wb") as f:
-                for data in stream.iter_bytes(BLOCK):
-                    f.write(data)
-                    sha.update(data)
-        return sha.hexdigest()
-    
-    def submit(self, task):
-        """
-        task: (url, savpath)
-        """
-        url, savepath = task
-        self.wget(url, savepath)
-    
-    def join(self):
-        """
-        兼容Downloader()
-        """
-        self.close()
+        if HTTPX:
+            self.Client.close()
 
 
-if HTTPX:
-    dler = Downloader2()
-else:
-    dler = Downloader()
+dler = Downloader()
 
 
 class DotDict(dict):
