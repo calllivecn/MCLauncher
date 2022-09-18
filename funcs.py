@@ -433,5 +433,5 @@ def select_local(versions_path):
 # test
 if __name__ == "__main__":
 
-    print("sha = ", wget(sys.argv[1], sys.argv[2]))
+    print("sha = ", wget_sha(sys.argv[1], sys.argv[2]))
 
