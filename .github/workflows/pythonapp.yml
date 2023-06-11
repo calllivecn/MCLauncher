@@ -2,7 +2,7 @@ name: Python application
 
 on:
   push:
-    breanchs:
+    branches:
       - master
       - devel
 
@@ -12,15 +12,17 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - name: Set up Python 3.7
+    - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Test with Actions
       run: |
         ls -lh
+        echo "==================="
         bash build2pyz.sh
+        echo "==================="
         ls -lh
 
     - name: release MCLaunhcer.pyz from github.com
