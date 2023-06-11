@@ -12,7 +12,7 @@ temp=$(mktemp -d)
 
 trap "exit_clear" SIGINT SIGTERM ERR EXIT
 
-cp -v *.py "$temp"
+cp -v src/*.py "$temp"
 
 python3 -m zipapp "$temp" -c -m "main:main" -o MCLauncher.pyz -p "/usr/bin/env python3"
 

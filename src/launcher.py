@@ -11,15 +11,16 @@ import time
 import pprint
 import atexit
 from os import path
+from pathlib import Path
 from urllib import parse
 from shutil import rmtree
 from zipfile import ZipFile
 from subprocess import run, CalledProcessError
 
 
+from logs import logger
 from funcs import *
 from initconfig import *
-from logs import logger
 
 
 #########################
@@ -89,8 +90,6 @@ class MCL:
 
 
     def launcher(self):
-        # 注册清理函数
-        atexit.register(self.clear_natives)
 
         if "fabric" in self.version_id:
             self.get_classpath()
@@ -104,6 +103,8 @@ class MCL:
 
             self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
 
+        # 注册清理函数
+        atexit.register(self.clear_natives)
 
         logger.info("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
 
@@ -148,7 +149,7 @@ class MCL:
 
                 url = lib["url"] + parse.quote("/".join([libpath, libname, libversion, libname + "-" + libversion + ".jar"]))
                 logger.warning(f"fabric libraries {cp} not exists... download:{url}")
-                wget(url, cp)
+                dler.wget(url, cp)
                 self.fabric_libraries_cp.append(cp)
                 # sys.exit(1)
     
@@ -189,6 +190,12 @@ class MCL:
         if hasattr(self, "natives_dll_path"):
             logger.debug(f"清理native库: {self.natives_dll_path}")
             rmtree(self.natives_dll_path)
+
+        else:
+            natives_dll_path = Path(joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp))
+            if natives_dll_path.is_dir():
+                logger.debug(f"(那这是谁解压的？)清理native库: {natives_dll_path}")
+                rmtree(natives_dll_path)
 
     def get_classpath(self):
     
@@ -271,6 +278,7 @@ class MCL:
 
                                     # 这里为什么要看 self.natives_dll_path 存不存在？2021-07-24
                                     self.natives_dll_path = joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp)
+                                    # print(f"这里是没有执行吗？{self.natives_dll_path}") # 这里没有执行。。。v1.20.2
 
                                     if path.isdir(self.natives_dll_path):
                                         if self.Djava_library_path == '':

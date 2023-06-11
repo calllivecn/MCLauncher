@@ -7,16 +7,15 @@
 __all__ = ["logger", "setLevel"]
 
 
-from sqlite3 import Time
 import sys
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from os import path
+from logging.handlers import TimedRotatingFileHandler
 
 logger = logging.getLogger("MCL")
 
-if logger is None:
-    logger = logging.Logger("MCL")
+# if logger is None:
+    # logger = logging.Logger("MCL")
 
 stream = logging.StreamHandler(sys.stderr)
 

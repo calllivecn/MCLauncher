@@ -10,11 +10,13 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 
+# 日志要放前面？？？
+from logs import logger, setLevel
+
 import checkdownload
 from launcher import MCL
 from initconfig import *
 from funcs import *
-from logs import logger, setLevel
 from usercfg import UserCFG
 
 
