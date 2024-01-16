@@ -26,7 +26,7 @@ jobs:
 
     # - name: release MCLaunhcer.pyz from github.com
     - name: 保存 MCLaunhcer.pyz
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: MCLauncher.pyz
         path: MCLauncher.pyz
