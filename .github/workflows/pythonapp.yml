@@ -9,14 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v4
 
     - name: Set up Python 3.10
-      uses: actions/setup-python@main
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Test with Actions
+    - name: 跑起来～
       run: |
         ls -lh
         echo "==================="
@@ -24,8 +24,9 @@ jobs:
         echo "==================="
         ls -lh
 
-    - name: release MCLaunhcer.pyz from github.com
-      uses: actions/upload-artifact@main
+    # - name: release MCLaunhcer.pyz from github.com
+    - name: 保存 MCLaunhcer.pyz
+      uses: actions/upload-artifact@v4
       with:
         name: MCLauncher.pyz
         path: MCLauncher.pyz
