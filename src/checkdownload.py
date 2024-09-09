@@ -7,11 +7,9 @@ __all__ = [
             "get_manifest",
             ]
 
-# import os
 import sys
 import shutil
 from os import path
-from urllib.request import urlopen
 
 # from launcher import MCL
 from logs import logger, setLevel
@@ -21,8 +19,11 @@ from funcs import *
 
 def get_manifest():
     logger.debug("下载：{}".format(VERSION_MANIFEST))
-    manifest = urlopen(VERSION_MANIFEST)
-    return loads_json(manifest.read())
+    # manifest = urlopen(VERSION_MANIFEST)
+    # return loads_json(manifest.read())
+
+    manifest = http2_get(VERSION_MANIFEST)
+    return loads_json(manifest)
 
 
 def install_game():
@@ -38,7 +39,6 @@ def install_game():
     if path.exists(mds.client_json):
         logger.info("{} 已存在 ... 跳过".format(mds.client_json))
     else:
-        # wget(manifest_json.get("url"), mds.client_json)
         dler.wget(manifest_json.get("url"), mds.client_json)
 
     versions_json = get_json(mds.client_json)
@@ -53,7 +53,6 @@ def install_game():
     if path.exists(mds.client_jar):
         logger.info("{} 已存在 ... 跳过".format(mds.client_jar))
     else:
-        # wget(client.get("url"), mds.client_jar)
         dler.submit((client.get("url"), mds.client_jar))
 
     # 开始下载 server.jar
@@ -64,7 +63,6 @@ def install_game():
     if path.exists(mds.server_jar):
         logger.info("{} 已存在 ... 跳过".format(mds.server_jar))
     else:
-        # wget(server.get("url"), mds.server_jar)
         dler.submit((server.get("url"), mds.server_jar))
 
 
@@ -114,7 +112,6 @@ def install_game():
         logger.info("{} 已存在, check sha1".format(assetindex_realpath))
     else:
         logger.info("下载 assetindex: {}".format(assetindex_realpath))
-        # wget(assetindex.get("url"), assetindex_realpath)
         dler.wget(assetindex.get("url"), assetindex_realpath)
 
     resources = get_json(assetindex_realpath)
@@ -158,7 +155,6 @@ def check_game(export_target=None):
         logger.info("{} ... ok".format(mds.client_jar))
     else:
         logger.info("下载 client : {}".format(mds.client_jar))
-        # wget(client.get("url"), mds.client_jar)
         dler.submit((client.get("url"), mds.client_jar))
 
     # 开始下载 server.jar
@@ -169,7 +165,6 @@ def check_game(export_target=None):
         logger.info("{} ... ok".format(mds.server_jar))
     else:
         logger.info("check fail 下载 server: {}".format(mds.server_jar))
-        # wget(server.get("url"), mds.server_jar)
         dler.submit((server.get("url"), mds.server_jar))
 
 
@@ -220,7 +215,6 @@ def check_game(export_target=None):
         logger.info("{} ... ok".format(assetindex_realpath))
     else:
         logger.info("check fail 下载: {}".format(assetindex_realpath))
-        # wget(assetindex.get("url"), assetindex_realpath)
         dler.submit((assetindex.get("url"), assetindex_realpath))
 
 

@@ -23,8 +23,13 @@ __all__ = (
             "DotDict",
             "get_dotdict",
             "set_dotdict",
+            "http2_get",
 )
 
+from typing import (
+    Union,
+    Dict,
+)
 
 import os
 import sys
@@ -42,17 +47,18 @@ from queue import Queue
 from logs import logger
 
 
-HTTPX=True
 try:
     import httpx
 except ModuleNotFoundError:
-    HTTPX=False
+    logger.error(f"需要安装: pip install httpx[http2]")
+    sys.exit(1)
 
 
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net" # + hash_val[0:2] + "/" + hash_val
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"}
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"}
+USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"}
 
 BLOCK = 1<<14 # 16k
 
@@ -108,18 +114,31 @@ def joinpath(*args):
     return os.sep.join(args)
 
 
-def wget_sha(url, savepath):
-    req = request.Request(url, headers=USER_AGENT)
-    response = request.urlopen(req, timeout=15)
+def http2_get(url: str) -> bytes:
+    with httpx.Client(http2=True, headers=USER_AGENT) as client:
+        r = client.get(url)
 
-    sha = sha1()
-    
-    with open(savepath, "wb") as f:
-        for data in iter(partial(response.read, BLOCK), b""):
-            f.write(data)
-            sha.update(data)
+    return r.read()
 
-    return sha.hexdigest()
+
+def req2(url, method="GET", data: Union[None, Dict]=None, json: Union[None, Dict]=None, headers: Dict={}, content="application/json") -> Dict:
+
+    USER_AGENT.update({"Content-type": content})
+    USER_AGENT.update(headers)
+
+    with httpx.Client(http2=True) as client:
+        if method == "GET":
+            r = client.get(url, params=data, headers=USER_AGENT)
+
+        elif method == "POST":
+            r = client.post(url, data=data, json=json, headers=USER_AGENT)
+        
+        else:
+            raise ValueError(f"目前没有支持其他 http 方法")
+
+    logger.debug(f"{r.request.headers=}\n{r.headers=}\n{r.status_code=}\n{r.read()=}")
+
+    return r.json()
 
 
 class Downloader:
@@ -130,9 +149,8 @@ class Downloader:
 
         self.worker = worker
 
-        if HTTPX:
-            limits = httpx.Limits(max_keepalive_connections=self.worker)
-            self.Client = httpx.Client(http2=True, limits=limits)
+        limits = httpx.Limits(max_keepalive_connections=self.worker)
+        self.Client = httpx.Client(http2=True, limits=limits)
 
         self.taskqueue = Queue(100)
 
@@ -147,21 +165,6 @@ class Downloader:
             logger.debug("线程：{}".format(th.name))
             th.start()
             self.threads.append(th)
-
-
-    def wget(self, url, savepath):
-        if HTTPX:
-            self.client(url, savepath)
-        else:
-            self.wget2(url, savepath)
-
-
-    def wget2(self, url, savepath):
-        req = request.Request(url, headers=USER_AGENT)
-        with request.urlopen(req, timeout=60) as response:
-            with open(savepath, "wb") as f:
-                for data in iter(partial(response.read, BLOCK), b""):
-                    f.write(data)
 
 
     def client(self, url, savepath):
@@ -187,10 +190,7 @@ class Downloader:
             url, savepath = self.taskqueue.get()
 
             try:
-                if HTTPX:
-                    self.client(url, savepath)
-                else:
-                    self.wget2(url, savepath)
+                self.client(url, savepath)
 
             except socket.timeout:
                 logger.warning("下载超时：{}".format(url))
@@ -216,8 +216,7 @@ class Downloader:
         logger.debug("join 下载队列。")
         self.taskqueue.join()
 
-        if HTTPX:
-            self.Client.close()
+        self.Client.close()
 
 
 dler = Downloader()

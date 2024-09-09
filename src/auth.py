@@ -8,23 +8,22 @@ __all__ = (
     "auth",
 )
 
+
+
 import re
 import sys
-import json
 import time
 import webbrowser
-from pathlib import Path
 from datetime import (
     datetime,
     timedelta,
     timezone,
+    
 )
 from urllib import (
-    request,
     parse,
 )
 from pprint import (
-    pprint,
     pformat,
 )
 
@@ -34,6 +33,7 @@ from initconfig import (
 )
 from funcs import (
     DotDict,
+    req2,
 )
 
 """
@@ -42,44 +42,22 @@ MC 认证过程文档：https://wiki.vg/ZH:Microsoft_Authentication_Scheme
 
 def utc2local(utc_dtm):
     local_tm = datetime.fromtimestamp(0)
-    utc_tm = datetime.utcfromtimestamp(0)
+    # py3.12
+    # utc_tm = datetime.utcfromtimestamp(0)
+    utc_tm = datetime.fromtimestamp(0, datetime.UTC)
     offset = local_tm - utc_tm
     return utc_dtm + offset
 
+
 def local2utc(local_dtm):
-    return datetime.utcfromtimestamp(local_dtm.timestamp())
-
-def req(url, param=None, method="GET", header={}, content="application/json"):
-
-    headers = {
-        #"Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
-        "Content-Type": content,
-    }
-
-    if header is not {}:
-        headers.update(header)
-
-    if param is None:
-        data = None
-    else:
-        if content == "application/json":
-            data=json.dumps(param).encode("utf-8")
-        elif content == "application/x-www-form-urlencoded;charset=utf-8;":
-            data = parse.urlencode(param).encode("utf-8")
-        else:
-            print("没定义的请求方式")
-            data = None
-
-    r = request.Request(url, data=data, headers=headers, method=method)
-
-    j = request.urlopen(r).read()
-
-    result = json.loads(j)
-
-    return result
+    # py3.12
+    # return datetime.utcfromtimestamp(local_dtm.timestamp())
+    return datetime.fromtimestamp(local_dtm, datetime.UTC)
 
 
-find_code = re.compile("https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
+# find_code = re.compile("https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
+# py3.12
+find_code = re.compile(r"https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
 
 class AuthorizedError(Exception):
     pass
@@ -204,7 +182,7 @@ class MicrosoftAuthorized:
             "scope": "service::user.auth.xboxlive.com::MBI_SSL"
         }
 
-        j = req(URL_token, param, method="POST", content="application/x-www-form-urlencoded;charset=utf-8;")
+        j = req2(URL_token, method="POST", data=param, content="application/x-www-form-urlencoded;charset=utf-8;")
         return j
     
     # refresh access token, 没必要刷新，xbox token 过期时间 有15天
@@ -219,7 +197,7 @@ class MicrosoftAuthorized:
             "scope": "service::user.auth.xboxlive.com::MBI_SSL"
         }
 
-        j = req(URL_token, param, method="POST", content="application/x-www-form-urlencoded;charset=utf-8;")
+        j = req2(URL_token, method="POST", data=param, content="application/x-www-form-urlencoded;charset=utf-8;")
 
         return j
 
@@ -238,7 +216,7 @@ class MicrosoftAuthorized:
             "TokenType": "JWT"
         }
 
-        xbox = req(URL_xbox, param, method="POST")
+        xbox = req2(URL_xbox, method="POST", json=param)
 
         logger.debug("xbox ↓")
         logger.debug(pformat(xbox))
@@ -261,7 +239,7 @@ class MicrosoftAuthorized:
             "TokenType": "JWT",
         }
 
-        xsts = req(URL_xsts, param, method="POST")
+        xsts = req2(URL_xsts, method="POST", json=param)
 
         logger.debug("xsts ↓")
         logger.debug(pformat(xsts))
@@ -279,7 +257,7 @@ class MicrosoftAuthorized:
             "identityToken": "XBL3.0 x=" + xsts_uhs + ";" + xsts_token,
         }
 
-        mc_j = req(URL_mc, param, method="POST")
+        mc_j = req2(URL_mc, method="POST", json=param)
 
         logger.debug("get MC token ↓")
         logger.debug(pformat(mc_j))
@@ -293,10 +271,11 @@ class MicrosoftAuthorized:
     def check_mc(self, access_token):
         url_check_mc="https://api.minecraftservices.com/entitlements/mcstore"
 
-        #header = {"Authorization": "Bearer " + access_token}
+        # header = {"Authorization": "Bearer " + access_token}
         header = {"Authorization": self.usercache.mc_token_type + " " + access_token}
 
-        result = req(url_check_mc, header=header)
+        result = req2(url_check_mc, headers=header)
+
         if len(result["items"]) == 0:
             logger.error("你的微软账号里没Minecraft.")
             sys.exit(0)
@@ -334,7 +313,7 @@ class MicrosoftAuthorized:
 
         header = {"Authorization": "Bearer " + access_token}
 
-        profile = req(url_mc_profile, header=header)
+        profile = req2(url_mc_profile, headers=header)
 
         logger.debug("profile ↓")
         logger.debug(pformat(profile))
