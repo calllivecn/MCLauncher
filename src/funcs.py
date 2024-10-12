@@ -27,8 +27,7 @@ __all__ = (
 )
 
 from typing import (
-    Union,
-    Dict,
+    Optional,
 )
 
 import os
@@ -121,7 +120,7 @@ def http2_get(url: str) -> bytes:
     return r.read()
 
 
-def req2(url, method="GET", data: Union[None, Dict]=None, json: Union[None, Dict]=None, headers: Dict={}, content="application/json") -> Dict:
+def req2(url, method="GET", data: Optional[dict]=None, json: Optional[dict]=None, headers: dict={}, content="application/json") -> dict:
 
     USER_AGENT.update({"Content-type": content})
     USER_AGENT.update(headers)
