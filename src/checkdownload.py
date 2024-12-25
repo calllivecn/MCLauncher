@@ -39,7 +39,7 @@ def install_game():
     if path.exists(mds.client_json):
         logger.info("{} 已存在 ... 跳过".format(mds.client_json))
     else:
-        dler.wget(manifest_json.get("url"), mds.client_json)
+        dler.client(manifest_json.get("url"), mds.client_json)
 
     versions_json = get_json(mds.client_json)
 
@@ -112,7 +112,7 @@ def install_game():
         logger.info("{} 已存在, check sha1".format(assetindex_realpath))
     else:
         logger.info("下载 assetindex: {}".format(assetindex_realpath))
-        dler.wget(assetindex.get("url"), assetindex_realpath)
+        dler.client(assetindex.get("url"), assetindex_realpath)
 
     resources = get_json(assetindex_realpath)
     objects = resources.get("objects")

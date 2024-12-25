@@ -5,6 +5,11 @@
 	1. 有了GUI， 还没接入。
 	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)：1.13.x ~ 1.21.x (minimumLauncherVersion: 21)
 
+CHANGELOG 2024-12-25：
+
+	1. 修复windows问题。
+    2. 修复迁移到httpx的问题。
+
 CHANGELOG 2021-12-01：
 
 	1. 多个小bug修复。

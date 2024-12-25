@@ -149,7 +149,7 @@ class MCL:
 
                 url = lib["url"] + parse.quote("/".join([libpath, libname, libversion, libname + "-" + libversion + ".jar"]))
                 logger.warning(f"fabric libraries {cp} not exists... download:{url}")
-                dler.wget(url, cp)
+                dler.client(url, cp)
                 self.fabric_libraries_cp.append(cp)
                 # sys.exit(1)
     
@@ -187,15 +187,26 @@ class MCL:
                     zf.extract(name, target)
 
     def clear_natives(self):
-        if hasattr(self, "natives_dll_path"):
-            logger.debug(f"清理native库: {self.natives_dll_path}")
-            rmtree(self.natives_dll_path)
+        """
+        2024-12-25
+        windows 下，清理时，进程退出后，*.dll库可以还没完全释放。
+        使用 sleep 方式清理
+        """
+        for i in range(60):
+            try:
+                if hasattr(self, "natives_dll_path"):
+                    logger.debug(f"清理native库: {self.natives_dll_path}")
+                    rmtree(self.natives_dll_path)
 
-        else:
-            natives_dll_path = Path(joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp))
-            if natives_dll_path.is_dir():
-                logger.debug(f"(那这是谁解压的？)清理native库: {natives_dll_path}")
-                rmtree(natives_dll_path)
+                else:
+                    natives_dll_path = Path(joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp))
+                    if natives_dll_path.is_dir():
+                        logger.debug(f"(那这是谁解压的？)清理native库: {natives_dll_path}")
+                        rmtree(natives_dll_path)
+            except Exception as e:
+                logger.warning(f"清理异常：{e}, slee(3)")
+                time.sleep(3)
+
 
     def get_classpath(self):
     
