@@ -250,22 +250,19 @@ class MCL:
                                 allow = True
                         else:
                             allow = True
-                else:
-                    allow = False
 
             if allow:
                 downloads = class_jar_info.downloads
                 if downloads.artifact:
                     cp_path.append(self.libraries / getcp(downloads.artifact))
                     logger.debug(f"Class Path 添加: {getcp(downloads.artifact)}")
-            else:
-                continue
+            # else:
+                # continue
 
             
             # 判断 native 不知道从那个版开始没有natives了。但是启动器版号还是没变更。
-            logger.debug(f"{class_jar_info.natives=} 有吗？")
+            # 这版开始的？不需要启动器解压动态库了。2025-07-18
             if class_jar_info.natives:
-                logger.debug(f"{class_jar_info.natives=} 就都没有执行？")
 
                 natives = class_jar_info.natives
                 # 如果当前系统需要这个动态库
@@ -291,7 +288,7 @@ class MCL:
 
                             logger.info(f"解压natives库：{jar_dll_realpath} --> {self.natives_dll_path}")
                             self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
-                        
+
 
         cp = []
         for cp_class in cp_path:
