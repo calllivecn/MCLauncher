@@ -20,25 +20,29 @@ from usercfg import UserCFG
 
 
 def parse_args():
-    parse = ArgumentParser(description='一个MC启动器 {}'.format(LAUNCHER_VERSION), usage='%(prog)s [optional]',epilog='https://github.com/calllivecn/MCLauncher')
+    parse = ArgumentParser(
+        description=f"一个MC启动器 {LAUNCHER_VERSION}",
+        usage='%(prog)s [optional]',
+        epilog='https://github.com/calllivecn/MCLauncher'
+        )
 
     parse.add_argument("--install-game", action="store_true", help="安装游戏")
 
-    parse.add_argument("--check-game", action="store_true", help="检查游戏资源完整性")
+    parse.add_argument("--check-game", action="store_true", help="检查游戏资源完整性, 缺少的会下载。")
 
     parse.add_argument("--export-game", action="store", help="导出指定游戏版本到新目录")
 
-    parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名")
+    parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名。和--online一起使用是切换微软账号。")
     
-    parse.add_argument("--online", action="store_true", help="使用微软账号登录")
+    parse.add_argument("--online", action="store_true", help="使用微软账号登录。单独使用时，是添加一个新的微软账号。")
 
-    parse.add_argument("--select-version", action="store_true", help="选择游戏版本。（默认启动本地最新版）")
+    parse.add_argument("--select-version", action="store_true", help="交互选择游戏版本。")
 
-    parse.add_argument("--resolution", action="store", help="设置游戏初始窗口大小, 例如：1920x1080（默认自动）")
+    parse.add_argument("--resolution", action="store", help="设置游戏启动时窗口大小, 例如：1920x1080（默认自动）")
 
-    parse.add_argument("--java-path", action="store", help="指定 java 路径")
+    parse.add_argument("--java-path", action="store", help="指定java路径")
 
-    parse.add_argument("--jvm-args", action="store", help="设置 jvm 参数")
+    parse.add_argument("--jvm-args", action="store", help="设置jvm自定义参数")
 
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
 
@@ -92,12 +96,10 @@ def main():
     # 更新游戏版本
     if args.select_version:
         # 选择游戏版本
-        # usercfg.currentversion = select_local(mds.versions, latest=False)
         usercfg.currentversion = select_local(mds.versions)
 
     elif usercfg.currentversion is None:
         logger.debug(f"currentversion is None ... --> {usercfg.currentversion}")
-        # usercfg.currentversion = select_local(mds.versions, latest=False)
         usercfg.currentversion = select_local(mds.versions)
 
     # else:

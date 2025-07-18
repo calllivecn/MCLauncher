@@ -330,7 +330,7 @@ def export_game(directory: str):
         copy(savepath, savepath_new)
     
     # 把自身也复制过去
-    copy(sys.argv[0], mds_new.absGameDir)
+    shutil.copy(sys.argv[0], mds_new.absGameDir)
 
 
 
