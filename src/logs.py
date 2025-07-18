@@ -27,7 +27,7 @@ logger.addHandler(stream)
 
 logfilename, ext = path.splitext(sys.argv[0])
 
-logfilename = logfilename + ".logs"
+logfilename = logfilename + ".log"
 
 #logsname = logging.FileHandler(logfilename, "a")
 logsname = TimedRotatingFileHandler(logfilename, when="D",interval=1, backupCount=30)
