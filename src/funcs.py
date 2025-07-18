@@ -96,23 +96,23 @@ class DotDict(dict):
 
 
 def get_json(f: Path) -> dict:
-    with open(f) as fp:
+    with open(f, encoding="utf8") as fp:
         data = json.load(fp)
     return data
 
 def set_json(obj,f):
-    with open(f,'w') as fp:
+    with open(f, "w", encoding="utf8") as fp:
          data = json.dump(obj, fp, ensure_ascii=False, indent=4)
     return data
 
 def get_dotdict(f) -> DotDict:
     d = DotDict()
-    with open(f) as fp:
+    with open(f, encoding="utf8") as fp:
         d.load(fp)
     return d
 
 def set_dotdict(d, f):
-    with open(f, "w") as fp:
+    with open(f, "w", encoding="utf8") as fp:
         data = d.dump(fp, ensure_ascii=False, indent=4)
     return data
 
