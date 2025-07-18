@@ -8,19 +8,31 @@
 import os
 import sys
 import time
+import shutil
 import pprint
 import atexit
-from os import path
 from pathlib import Path
 from urllib import parse
-from shutil import rmtree
 from zipfile import ZipFile
 from subprocess import run, CalledProcessError
 
 
 from logs import logger
-from funcs import *
-from initconfig import *
+from funcs import (
+    get_json,
+    fillpath,
+    dler,
+    getcp,
+    # DotDict,
+    get_dotdict,
+)
+from initconfig import (
+    McDirStruct,
+    CONF,
+    OSTYPE,
+    LAUNCHER,
+    LAUNCHER_VERSION,
+)
 
 
 #########################
@@ -35,7 +47,7 @@ from initconfig import *
 class MCL:
 
 
-    def __init__(self, username, uuid, accesstoken, mds, width=None, height=None, debug=False):
+    def __init__(self, username: str, uuid: str, accesstoken: str, mds: McDirStruct, width=None, height=None, debug=False):
         
         self.username = username
         self.uuid = uuid
@@ -72,9 +84,10 @@ class MCL:
         self.__get_gameDir()
 
 
-        self.mc_json = get_json(self.client_json)
+        # self.mc_json = get_json(self.client_json)
+        self.mc_json = get_dotdict(self.client_json)
 
-        self.mainclass = self.mc_json.get('mainClass')
+        self.mainclass = self.mc_json["mainClass"]
 
         self.timestamp = str(time.time_ns())
         self.__get_Djava_library_path()
@@ -122,16 +135,17 @@ class MCL:
         self.jvm_args = [f"-Dminecraft.client.jar={self.client_jar}"] + self.jvm_args
         self.classpath = self.fabric_libraries_cp + self.classpath
 
+
     def fabric_init(self):
         self.fabric_version_id = self.version_id
-        fabric_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
+        fabric_json = self.versions.joinpath(self.version_id, self.version_id + ".json")
         self.fabric_json = get_json(fabric_json)
 
         # 拿到对应的MC client_jar
         self.mds.select_version_id(self.fabric_json["inheritsFrom"])
 
-        self.fabric_mainClass = self.fabric_json["mainClass"]
-        self.fabric_arguments_jvm = self.fabric_json["arguments"]["jvm"]
+        self.fabric_mainClass: str = self.fabric_json["mainClass"]
+        self.fabric_arguments_jvm: list[str] = self.fabric_json["arguments"]["jvm"]
 
         self.fabric_libraries_cp = []
         # 解析 fabric_libraries 
@@ -139,44 +153,43 @@ class MCL:
         for lib in self.fabric_libraries:
             libpath, libname, libversion = lib["name"].split(":")
             libpath = libpath.replace(".", os.sep)
-            cp = joinpath(self.libraries, libpath, libname, libversion, libname + "-" + libversion + ".jar")
-            if path.exists(cp):
+            cp = self.libraries.joinpath(libpath, libname, libversion, libname + "-" + libversion + ".jar")
+            if cp.exists():
                 self.fabric_libraries_cp.append(cp)
             else:
-                "https://maven.fabricmc.net/net/fabricmc/tiny-mappings-parser/0.3.0%2Bbuild.17/tiny-mappings-parser-0.3.0%2Bbuild.17.jar"
+                # "https://maven.fabricmc.net/net/fabricmc/tiny-mappings-parser/0.3.0%2Bbuild.17/tiny-mappings-parser-0.3.0%2Bbuild.17.jar"
                 # 创建目录。。。哎，麻烦。
                 fillpath(cp)
 
                 url = lib["url"] + parse.quote("/".join([libpath, libname, libversion, libname + "-" + libversion + ".jar"]))
                 logger.warning(f"fabric libraries {cp} not exists... download:{url}")
-                dler.client(url, cp)
+                dler.submit((url, cp))
                 self.fabric_libraries_cp.append(cp)
                 # sys.exit(1)
     
-    def set_java_path(self, java_path):
+
+    def set_java_path(self, java_path: str):
         self.java_path = java_path
 
-    def set_jvm_customize_args(self, jvm_customize_args):
+
+    def set_jvm_customize_args(self, jvm_customize_args: str):
         self.jvm_customize_args = jvm_customize_args.split()
     
+
     def __get_gameDir(self):
         
-        if path.exists(self.gameDir):
+        if self.gameDir.exists():
             pass
         else:
-            logger.error('游戏目录不存在: {} 或者 当前没有游戏。'.format(self.gameDir))
+            logger.error(f"游戏目录不存在: {self.gameDir} 或者 当前没有游戏。")
             sys.exit(1)
         
-    def __get_game_version(self):
-
-        if not path.isdir(self.version_id):
-            logger.error('没有找到versions目录')
-            sys.exit(1)
 
     def __get_Djava_library_path(self):
         if self.Djava_library_path == "": 
-            self.Djava_library_path = joinpath(str(CONF), self.version_id + '-natives-' + self.timestamp)
-        logger.debug("Djava_libaray_path: {}".format(self.Djava_library_path))
+            self.Djava_library_path = CONF.joinpath(self.version_id + '-natives-' + self.timestamp)
+            self.Djava_library_path.mkdir()
+        logger.debug(f"Djava_libaray_path: {self.Djava_library_path}")
     
 
     def __unpack_dll(self, realpath, target):
@@ -185,6 +198,7 @@ class MCL:
             for name in zf.namelist():
                 if name.endswith(".so") or name.endswith(".SO") or name.endswith(".dll") or name.endswith(".DLL"):
                     zf.extract(name, target)
+
 
     def clear_natives(self):
         """
@@ -196,13 +210,13 @@ class MCL:
             try:
                 if hasattr(self, "natives_dll_path"):
                     logger.debug(f"清理native库: {self.natives_dll_path}")
-                    rmtree(self.natives_dll_path)
+                    shutil.rmtree(self.natives_dll_path)
 
                 else:
-                    natives_dll_path = Path(joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp))
+                    natives_dll_path = CONF.joinpath(self.version_id + "-natives-" + self.timestamp)
                     if natives_dll_path.is_dir():
                         logger.debug(f"(那这是谁解压的？)清理native库: {natives_dll_path}")
-                        rmtree(natives_dll_path)
+                        shutil.rmtree(natives_dll_path)
             except Exception as e:
                 logger.warning(f"清理异常：{e}, slee(3)")
                 time.sleep(3)
@@ -211,110 +225,83 @@ class MCL:
     def get_classpath(self):
     
         ### 解析 jar 库路径
-        jar_path = self.mc_json.get('libraries')
-        cp_path = []
+        jar_path = self.mc_json['libraries']
+        cp_path: list[Path] = []
         for class_jar_info in jar_path:
             
-            # 判断 rules 
-            rules = class_jar_info.get('rules')
-
-            if rules is not None:
-                for rule in rules:
-                    
-                    action = rule.get('action')
-                    if action == 'allow':
-
-                        os_ = rule.get('os')
-                        if os_ is None:
-                            allow = True
-                        else:
-                            ostype = os_.get('name')
-                            if ostype == OSTYPE:
+            allow = True
+            # 如果有rules ， 就需要看在什么条件下启用。
+            if class_jar_info.rules:
+                for rule in class_jar_info.rules:
+                    if rule.action == 'allow':
+                        if rule.os:
+                            if rule.os.name == OSTYPE:
                                 allow = True
                             else:
                                 allow = False
-
-                    elif action == 'disallow':
-                        os_ = rule.get('os')
-                        if os_ is None:
-                            allow = True
                         else:
-                            ostype = os_.get('name')
-                            if ostype == OSTYPE:
+                            allow = True
+
+                    elif rule.action == 'disallow':
+                        if rule.so:
+                            if rule.os.name == OSTYPE:
                                 allow = False
                             else:
                                 allow = True
-
-                if allow:
-
-                    downloads = class_jar_info.get('downloads')
-                    if downloads is not None:
-
-                        artifact = downloads.get('artifact')
-                        if artifact is not None:
-                            cp_path.append(self.libraries + getcp(artifact))
-                            logger.debug("Class Path 添加: {}".format(getcp(artifact)))
+                        else:
+                            allow = True
                 else:
-                    continue
+                    allow = False
+
+            if allow:
+                downloads = class_jar_info.downloads
+                if downloads.artifact:
+                    cp_path.append(self.libraries / getcp(downloads.artifact))
+                    logger.debug(f"Class Path 添加: {getcp(downloads.artifact)}")
             else:
-
-                downloads = class_jar_info.get('downloads')
-                if downloads is not None:
-
-                    artifact = downloads.get('artifact')
-                    if artifact is not None:
-                        cp_path.append(self.libraries + getcp(artifact))
-                        logger.debug("Class Path 添加: {}".format(getcp(artifact)))
+                continue
 
             
-            # 判断 native
-            natives = class_jar_info.get('natives')
-            if natives is not None:
+            # 判断 native 不知道从那个版开始没有natives了。但是启动器版号还是没变更。
+            logger.debug(f"{class_jar_info.natives=} 有吗？")
+            if class_jar_info.natives:
+                logger.debug(f"{class_jar_info.natives=} 就都没有执行？")
 
+                natives = class_jar_info.natives
                 # 如果当前系统需要这个动态库
                 if OSTYPE in natives.keys():
 
-                    native_os = natives.get(OSTYPE)
-                    if native_os is not None:
-                        downloads = class_jar_info.get("downloads")
-                        if downloads is not None:
+                    native_os = natives[OSTYPE]
+                    downloads = class_jar_info.downloads
 
-                            # 这里是从jar 包里解压出 .so | dll 动态库
-                            classifiers = downloads.get('classifiers')
-                            if classifiers is not None:
-                                native_dll = classifiers.get(native_os)
-                                if native_dll is not None:
+                    # 这里是从jar 包里解压出 .so | dll 动态库
+                    if downloads.classifiers:
+                        native_dll = downloads.classifiers.get(native_os)
+                        if native_dll is not None:
 
-                                    jar_dll_realpath = self.libraries + getcp(native_dll)
+                            jar_dll_realpath = self.libraries / getcp(native_dll)
 
-                                    # 这里为什么要看 self.natives_dll_path 存不存在？2021-07-24
-                                    self.natives_dll_path = joinpath(str(CONF), self.version_id + "-natives-" + self.timestamp)
-                                    # print(f"这里是没有执行吗？{self.natives_dll_path}") # 这里没有执行。。。v1.20.2
+                            # 这里为什么要看 self.natives_dll_path 存不存在？2021-07-24
+                            self.natives_dll_path = CONF.joinpath(self.version_id + "-natives-" + self.timestamp)
+                            # print(f"这里是没有执行吗？{self.natives_dll_path}") # 这里没有执行。。。v1.20.2
 
-                                    if path.isdir(self.natives_dll_path):
-                                        if self.Djava_library_path == '':
-                                            self.Djava_library_path = self.natives_dll_path
+                            self.natives_dll_path.mkdir(parents=True, exist_ok=True)
+                            if self.Djava_library_path == '':
+                                self.Djava_library_path = self.natives_dll_path
 
-                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, self.natives_dll_path))
-                                        self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
-
-                                    else:
-                                        os.mkdir(self.natives_dll_path)
-                                        logger.info("解压natives库：{} --> {}".format(jar_dll_realpath, self.natives_dll_path))
-                                        self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
+                            logger.info(f"解压natives库：{jar_dll_realpath} --> {self.natives_dll_path}")
+                            self.__unpack_dll(jar_dll_realpath, self.natives_dll_path)
                         
 
         cp = []
         for cp_class in cp_path:
-            if path.exists(cp_class):
-                # cp += cp_class + path.pathsep
-                cp.append(cp_class)
+            if cp_class.exists():
+                cp.append(str(cp_class)) # Path --> str
             else:
-                logger.warning('不存在：{}'.format(cp_class))
+                logger.warning(f"不存在：{cp_class}")
 
-        #self.classpath = cp.rstrip(path.pathsep)
         self.classpath = cp
-        logger.debug("self.classpath -- >\n{}".format(self.classpath))
+        logger.debug(f"self.classpath -- >\n{self.classpath}")
 
     
     def get_game_args(self):
@@ -322,9 +309,9 @@ class MCL:
         mc_args = []
         
         try:
-            game_args = self.mc_json.get('arguments')
-            value_list = game_args.get('game')
-        except KeyError as e:
+            game_args = self.mc_json["arguments"]
+            value_list = game_args["game"]
+        except KeyError:
             logger.error("解析 MC json 文件出错")
             logger.error("解析 argments 或 game 时错误")
             sys.exit(1)
@@ -332,18 +319,16 @@ class MCL:
         allow = True
         for value in value_list:
 
+            logger.debug(f"解析 game_ages 参数：{value}")
             if isinstance(value, dict):
-                
-                rules = value.get("rules")
+
+                rules = value["rules"]
+                logger.debug(f"rules: {rules}")
                 for rule in rules:
 
-                    action = rule.get('action')
-                    if action == "allow":
-
-                        features =  rule.get('features')
-                        if features is not None:
-
-                            for k in features.keys():
+                    if rule.action == "allow":
+                        if rule.features:
+                            for k in rule.features.keys():
                                 if k == "is_demo_user":
                                     allow = False
                                     continue
@@ -351,40 +336,35 @@ class MCL:
                                     allow = False
                                     continue
                         
-                    elif action == "disallow":
+                    elif rule.action == "disallow":
                         allow = False
                         continue
 
 
             elif isinstance(value, str):
                 if value.startswith("${") and value.endswith("}"):
-                    #value = value.replace('${', '{').replace('}', '}')
-                    #mc_args += value + " "
                     mc_args.append(value)
                 else:
-                    #mc_args += value + " "
                     mc_args.append(value)
 
                 continue
 
             else:
-                logger.warning("未知 minecraft 参数：{} 尝试忽略。".format(value))
+                logger.warning(f"未知 minecraft 参数：{value} 尝试忽略。")
                 continue
 
             # # #############
             
             if allow:
-                logger.debug("启用 minecraft 参数：{}。".format(value))
-                for option in value.get('value'):
+                logger.debug(f"启用 minecraft 参数：{value}。")
+                for option in value["value"]:
 
                     if option.startswith("${") and option.endswith("}"):
-                        #mc_args += "{}".format(option.lstrip("$")) + " "
                         mc_args.append(value)
                     else:
-                        #mc_args += option + " "
                         mc_args.append(value)
             else:
-                logger.debug("不启用 minecraft 参数：{}。".format(value))
+                logger.debug(f"不启用 minecraft 参数：{value}。")
                 continue
 
         minecraft_args_build_dict = {'auth_player_name': self.username,
@@ -415,35 +395,25 @@ class MCL:
             self.minecraft_args.append('--width')
             self.minecraft_args.append(self.width)
 
-        #self.minecraft_args = mc_args.format(**minecraft_args_build_dict)
-        #self.minecraft_args = self.minecraft_args.split()
-        logger.debug("mc game 启动参数：{}".format(self.minecraft_args))
+        logger.debug(f"mc game 启动参数：{self.minecraft_args}")
 
 
     def get_jvm_args(self):
         
         jvms = []
-
-        jvm_list = self.mc_json.get("arguments").get("jvm")
+        jvm_list = self.mc_json["arguments"]["jvm"]
 
         allow = True
         for option_dict in jvm_list:
 
             if isinstance(option_dict, dict):
 
-                rules = option_dict.get("rules")
-                for rule in rules:
+                for rule in option_dict["rules"]:
 
-                    action = rule.get("action")
-                    if action == "allow":
-
-                        allow_os = rule.get("os")
-                        if allow_os is not None:
-
-                            os_name = allow_os.get("name")
-                            if os_name is not None:
-
-                                if os_name == OSTYPE:
+                    if rule.action == "allow":
+                        if rule.os:
+                            if rule.os.name:
+                                if rule.os.name == OSTYPE:
                                 # 停时先不管os 版本
                                 #  if allow_os.get("verions") == ""
                                     allow = True
@@ -454,13 +424,10 @@ class MCL:
                         else:
                             allow = False
 
-                    elif action == "disallow":
+                    elif rule.action == "disallow":
 
-                        allow_os = rule.get("os")
-                        if allow_os is not None:
-
-                            os_name = allow_os.get("name") 
-                            if os_name == OSTYPE:
+                        if rule.so.name:
+                            if rule.os.name == OSTYPE:
                                 allow = False
                             else:
                                 allow = True
@@ -478,27 +445,27 @@ class MCL:
                 elif isinstance(value, str):
                     jvms.append(value)
                 else:
-                    logger.warning("启用的 jvm 参数， 但不是 list, str。: {}".format(value))
+                    logger.warning(f"启用的 jvm 参数， 但不是 list, str。: {value}")
             else:
-                logger.debug("不启用的 jvm 参数: {}".format(option_dict.get("value")))
+                logger.debug(f"不启用的 jvm 参数: {option_dict.get("value")}")
 
         
-        tmp_dict = {'natives_directory': self.Djava_library_path,
+        tmp_dict = {'natives_directory': str(self.Djava_library_path),
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
-        'classpath' : os.pathsep.join(self.classpath) + os.pathsep + self.client_jar
+        'classpath' : os.pathsep.join(self.classpath) + os.pathsep + str(self.client_jar)
         }
 
         for option in jvms:
-            logger.debug("解析 jvm 参数: {}".format(option))
+            logger.debug(f"解析 jvm 参数: {option}")
             if option.startswith("${") and option.endswith("}"):
                 op = option[2:][:-1]
                 if op in tmp_dict:
-                    logger.debug("{} in tmp_dict value: {}".format(op, tmp_dict[op]))
+                    logger.debug(f"{op} in tmp_dict value: {tmp_dict[op]}")
                     self.jvm_args.append(tmp_dict[op])
 
             elif option.find("${") and option.endswith("}"):
-                logger.debug("jvm =${{}} 类型参数: {}".format(option))
+                logger.debug(f"jvm=${{}} 类型参数: {option}")
 
                 index = option.find("${")
                 key = option[index:][2:][:-1]
@@ -506,16 +473,16 @@ class MCL:
                 if key in tmp_dict:
                     op = option[:index] + tmp_dict[key]
                     self.jvm_args.append(op)
-                    logger.debug("添加参数： {}".format(op))
+                    logger.debug(f"添加参数： {op}")
                 else:
-                    logger.warning("没有找到 {} 参数的值。".format(option))
+                    logger.warning(f"没有找到 {option} 参数的值。")
 
             elif option.startswith("-"):
                 self.jvm_args.append(option)
 
             else:
-                logger.warning("未知参数：{}".format(option))
+                logger.warning(f"未知参数：{option}")
 
-        logger.debug("jvm 参数：{}".format(self.jvm_args))
+        logger.debug(f"jvm 参数：{self.jvm_args}")
 
 

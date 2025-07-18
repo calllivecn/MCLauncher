@@ -5,16 +5,17 @@
 
 
 __all__ = (
-            "loads_json",
             "get_json",
             "set_json",
             "get_uuid",
             "get_Duser_home",
             "getcp",
             "fillpath",
-            "joinpath",
             "get_resources",
             "get_jars",
+            "http2_get",
+            "http2_download",
+            "req2",
             "dler",
             "sha1sum",
             "diffsha1",
@@ -34,11 +35,9 @@ import os
 import sys
 import json
 import socket
-from os import path
+from pathlib import Path
 from hashlib import md5, sha1
-from urllib import request
-from urllib.parse import urlsplit
-from functools import partial
+# from urllib.parse import urlsplit
 from threading import Thread
 from queue import Queue
 
@@ -49,7 +48,7 @@ from logs import logger
 try:
     import httpx
 except ModuleNotFoundError:
-    logger.error(f"需要安装: pip install httpx[http2]")
+    logger.error("需要安装: pip install httpx[http2]")
     sys.exit(1)
 
 
@@ -60,166 +59,6 @@ USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"}
 
 BLOCK = 1<<14 # 16k
-
-
-def loads_json(f):
-    return json.loads(f)
-
-def get_json(f):
-    with open(f) as fp:
-        data = json.load(fp)
-    return data
-
-def set_json(obj,f):
-    with open(f,'w') as fp:
-         data = json.dump(obj, fp, ensure_ascii=False, indent=4)
-    return data
-
-def get_dotdict(f):
-    d = DotDict()
-    with open(f) as fp:
-        d.load(fp)
-    return d
-
-def set_dotdict(d, f):
-    with open(f, "w") as fp:
-        data = d.dump(fp, ensure_ascii=False, indent=4)
-    return data
-
-def get_uuid(username):
-    uuid = md5()
-    uuid.update(username.encode("utf8"))
-    return uuid.hexdigest()
-
-def get_Duser_home():
-    abs_path , _ = path.split(path.abspath(sys.argv[0]))
-    return abs_path
-
-def getcp(obj):
-    url = obj.get("url")
-    size = obj.get("size")
-    realpath = urlsplit(url).path
-    tmp = realpath.replace("/", os.sep)
-    return tmp
-
-
-def fillpath(realpath):
-    dirpath = path.dirname(realpath)
-    if not path.isdir(dirpath):
-        os.makedirs(dirpath)
-
-
-def joinpath(*args):
-    return os.sep.join(args)
-
-
-def http2_get(url: str) -> bytes:
-    with httpx.Client(http2=True, headers=USER_AGENT) as client:
-        r = client.get(url)
-
-    return r.read()
-
-
-def req2(url, method="GET", data: Optional[dict]=None, json: Optional[dict]=None, headers: dict={}, content="application/json") -> dict:
-
-    USER_AGENT.update({"Content-type": content})
-    USER_AGENT.update(headers)
-
-    with httpx.Client(http2=True) as client:
-        if method == "GET":
-            r = client.get(url, params=data, headers=USER_AGENT)
-
-        elif method == "POST":
-            r = client.post(url, data=data, json=json, headers=USER_AGENT)
-        
-        else:
-            raise ValueError(f"目前没有支持其他 http 方法")
-
-    logger.debug(f"{r.request.headers=}\n{r.headers=}\n{r.status_code=}\n{r.read()=}")
-
-    return r.json()
-
-
-class Downloader:
-    """
-    多线程http下载器
-    """
-    def __init__(self, worker=20):
-
-        self.worker = worker
-
-        limits = httpx.Limits(max_keepalive_connections=self.worker)
-        self.Client = httpx.Client(http2=True, limits=limits)
-
-        self.taskqueue = Queue(100)
-
-        self.threads = []
-
-        self.count = 0
-
-        logger.debug("启动下载线程：")
-        for _ in range(self.worker):
-
-            th = Thread(target=self.func, daemon=True)
-            logger.debug("线程：{}".format(th.name))
-            th.start()
-            self.threads.append(th)
-
-
-    def client(self, url, savepath):
-        with self.Client.stream("GET", url, headers=USER_AGENT) as stream:
-            with open(savepath, "wb") as f:
-                for data in stream.iter_bytes(BLOCK):
-                    f.write(data)
-
-
-    def submit(self, task):
-        """
-        task: (url, savpath)
-        """
-        logger.debug("提交任务：{}".format(task))
-        self.count += 1
-        self.taskqueue.put(task)
-
-
-    def func(self):
-
-        while True:
-
-            url, savepath = self.taskqueue.get()
-
-            try:
-                self.client(url, savepath)
-
-            except socket.timeout:
-                logger.warning("下载超时：{}".format(url))
-                os.remove(savepath)
-                self.count += 1
-                self.taskqueue.put((url, savepath))
-                continue
-            except Exception as e:
-                logger.error("出错：{}".format(e))
-                logger.error("出错url：{}".format(url))
-                self.count += 1
-                self.taskqueue.put((url, savepath))
-
-            finally:
-                # response.close()
-                self.taskqueue.task_done()
-                self.count -= 1
-                logger.info("下载完成：{}".format(savepath))
-                logger.debug("当前队列任务数：{}".format(self.count))
-
-
-    def join(self):
-        logger.debug("join 下载队列。")
-        self.taskqueue.join()
-
-        self.Client.close()
-
-
-dler = Downloader()
-
 
 class DotDict(dict):
     def __init__(self, *args, **kwargs):
@@ -255,20 +94,182 @@ class DotDict(dict):
 
         return obj
 
+
+def get_json(f: Path) -> dict:
+    with open(f) as fp:
+        data = json.load(fp)
+    return data
+
+def set_json(obj,f):
+    with open(f,'w') as fp:
+         data = json.dump(obj, fp, ensure_ascii=False, indent=4)
+    return data
+
+def get_dotdict(f) -> DotDict:
+    d = DotDict()
+    with open(f) as fp:
+        d.load(fp)
+    return d
+
+def set_dotdict(d, f):
+    with open(f, "w") as fp:
+        data = d.dump(fp, ensure_ascii=False, indent=4)
+    return data
+
+def get_uuid(username):
+    uuid = md5()
+    uuid.update(username.encode("utf8"))
+    return uuid.hexdigest()
+
+def get_Duser_home():
+    abs_path = Path(sys.argv[0]).parent
+    return abs_path
+
+def getcp(obj) -> str:
+    # url = obj.get("url")
+    # size = obj.get("size")
+    # realpath = urlsplit(url).path
+    realpath = obj["path"]
+    tmp = realpath.replace("/", os.sep)
+    return tmp
+
+
+def fillpath(realpath: Path):
+    realpath.parent.mkdir(parents=True, exist_ok=True)
+
+
+def http2_get(url: str) -> bytes:
+    with httpx.Client(http2=True, follow_redirects=True, headers=USER_AGENT) as client:
+        r = client.get(url)
+        return r.read()
+
+
+def http2_download(url: str, p: Path):
+    with httpx.Client(http2=True, follow_redirects=True, headers=USER_AGENT) as client:
+        with client.stream("GET", url) as response:
+            with open(p, "wb") as f:
+                for data in response.iter_bytes(BLOCK):
+                    f.write(data)
+
+def req2(url, method="GET", data: Optional[dict]=None, json: Optional[dict]=None, headers: dict={}, content="application/json") -> dict:
+
+    USER_AGENT.update({"Content-type": content})
+    USER_AGENT.update(headers)
+
+    with httpx.Client(http2=True) as client:
+        if method == "GET":
+            r = client.get(url, params=data, headers=USER_AGENT)
+
+        elif method == "POST":
+            r = client.post(url, data=data, json=json, headers=USER_AGENT)
+        
+        else:
+            raise ValueError("目前没有支持其他 http 方法")
+
+    logger.debug(f"{r.request.headers=}\n{r.headers=}\n{r.status_code=}\n{r.read()=}")
+
+    return r.json()
+
+
+class Downloader:
+    """
+    多线程http下载器
+    """
+    def __init__(self, worker=20):
+
+        self.worker = worker
+
+
+        self.taskqueue = Queue(100)
+
+        self.threads = []
+
+        self.count = 0
+
+        logger.debug("启动下载线程：")
+        for _ in range(self.worker):
+
+            th = Thread(target=self.func, daemon=True)
+            logger.debug("线程：{}".format(th.name))
+            th.start()
+            self.threads.append(th)
+
+
+    def client(self, client: httpx.Client, url: str, savepath: Path):
+        with client.stream("GET", url) as stream:
+            with open(savepath, "wb") as f:
+                for data in stream.iter_bytes(BLOCK):
+                    f.write(data)
+
+
+    def submit(self, task: tuple[str, Path]):
+        """
+        task: (url, savpath)
+        """
+        logger.debug("提交任务：{}".format(task))
+        self.count += 1
+        self.taskqueue.put(task)
+
+
+    def func(self):
+
+        # ~~httpx 使用http2 时不需要limits, 服务端会反馈并发数。~~ 在asyncio.run() 中可以这么用。？
+        # limits = httpx.Limits(max_keepalive_connections=self.worker), 有默认限制的。
+        # with httpx.Client(http2=True, limits=limits) as client:
+        with httpx.Client(http2=True, follow_redirects=True, headers=USER_AGENT) as client:
+
+            while True:
+
+                url, savepath = self.taskqueue.get()
+
+                try:
+                    self.client(client, url, savepath)
+
+                except socket.timeout:
+                    logger.warning("下载超时：{}".format(url))
+                    os.remove(savepath)
+                    self.count += 1
+                    self.taskqueue.put((url, savepath))
+                    continue
+                except Exception as e:
+                    logger.error(f"出错：{e}")
+                    logger.error(f"出错url: {url}")
+                    self.count += 1
+                    self.taskqueue.put((url, savepath))
+
+                finally:
+                    # response.close()
+                    self.taskqueue.task_done()
+                    self.count -= 1
+                    logger.info(f"下载完成：{savepath}")
+                    logger.debug(f"当前队列任务数：{self.count}")
+
+
+    def join(self):
+        logger.debug("join 下载队列。")
+        self.taskqueue.join()
+
+
+dler = Downloader()
+
+
+
+
 def sha1sum(filename):
     sha = sha1()
     with open(filename, "rb") as f:
-        for data in iter(partial(f.read, BLOCK), b""):
+        while (data := f.read(BLOCK)) != b"":
             sha.update(data)
     
     return sha.hexdigest()
 
 
-def diffsha1(sha, filename):
-    if path.exists(filename):
-        fn_sha = sha1sum(filename)
+def diffsha1(sha: str, filename: Path):
+    p = filename
+    if p.exists():
+        fn_sha = sha1sum(p)
     else:
-        logger.warning("{} 不在 ...".format(filename))
+        logger.warning(f"{p} 不在 ...")
         return False
 
     if sha == fn_sha:
@@ -277,27 +278,27 @@ def diffsha1(sha, filename):
         return False
 
 
-def get_resources(mc_obj, savepath):
+def get_resources(mc_obj, savepath: Path):
     hash_value = mc_obj.get("hash")
     size = mc_obj.get("size")
 
     url = "/".join([RESOURCES_OBJECTS, hash_value[0:2], hash_value])
 
-    logger.info("开始下载：{} ...".format(savepath))
+    logger.info(f"开始下载：{savepath} ...")
     dler.submit((url, savepath))
 
-def get_jars(jar_obj, savepath):
-    sha1_value = jar_obj.get("sha1")
+def get_jars(jar_obj, savepath: Path):
+    # sha1_value = jar_obj.get("sha1")
     url = jar_obj.get("url")
-    size = jar_obj.get("size")
+    # size = jar_obj.get("size")
 
-    logger.info("开始下载：{} ...".format(savepath))
+    logger.info(f"开始下载：{savepath} ...")
     dler.submit((url, savepath))
         
 
 
-def select(l):
-    l_len = len(l)
+def select(version_list: list):
+    l_len = len(version_list)
     
     while True:
         print("输入s切换快照版和正式版，输入q退出")
@@ -398,7 +399,7 @@ def install_select(vm):
 
 
 # def select_local(versions_path, latest=True):
-def select_local(versions_path):
+def select_local(versions_path: Path):
     vs = os.listdir(versions_path)
     l_len = len(vs)
     vs.sort()
@@ -427,9 +428,3 @@ def select_local(versions_path):
             continue
 
         return vs[number]
-
-# test
-if __name__ == "__main__":
-
-    print("sha = ", wget_sha(sys.argv[1], sys.argv[2]))
-

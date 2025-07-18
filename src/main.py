@@ -6,7 +6,6 @@
 import os
 import sys
 import argparse
-from pathlib import Path
 from argparse import ArgumentParser
 
 
@@ -15,8 +14,8 @@ from logs import logger, setLevel
 
 import checkdownload
 from launcher import MCL
-from initconfig import *
-from funcs import *
+from initconfig import LAUNCHER_VERSION, McDirStruct
+from funcs import select_local
 from usercfg import UserCFG
 
 
@@ -127,7 +126,7 @@ def main():
 
     logger.info(f"当前用户名：{usercfg.username}")
     
-    mclauncher.set_java_path(str(Path(usercfg.java_path)))
+    mclauncher.set_java_path(usercfg.java_path)
     mclauncher.set_jvm_customize_args(usercfg.jvm_args)
     mclauncher.launcher()
 

@@ -20,12 +20,10 @@ __all__ = [
 
 import os
 import sys
-from os import path
 from pathlib import Path
 from platform import system #, process
 
 
-from funcs import joinpath
 from logs import logger
 
 LAUNCHER = "MCL"
@@ -43,8 +41,8 @@ CONF = program / ".mcl"
 if not CONF.exists():
     CONF.mkdir()
 
+
 OSTYPE = system().lower()
-#ARCH = process()
 
 
 class McDirStruct:
@@ -54,34 +52,38 @@ class McDirStruct:
     3. 使用 mds ...
     """
 
-    def __init__(self, minecraft=None):
+    def __init__(self, minecraft: Path|None =None):
+        """
+        :param minecraft: Minecraft 目录，默认为当前工作目录。
+        """
 
         if minecraft is None:
-            self.absGameDir = os.getcwd()
+            self.absGameDir = Path(os.getcwd()) # 当前工作目录
         else:
-            if path.isdir(minecraft):
-                self.absGameDir = path.abspath(minecraft)
+            minecraft_path = minecraft
+            if minecraft_path.is_dir():
+                self.absGameDir = minecraft_path.absolute()
             else:
-                print("{} 目录不存在！".format(minecraft))
+                print(f"{minecraft_path} 目录不存在！")
                 sys.exit(1)
         
-        self.gameDir = joinpath(self.absGameDir, ".minecraft")
-        self.serverDir = joinpath(self.absGameDir, "server")
+        self.gameDir = self.absGameDir / ".minecraft"
+        self.serverDir = self.absGameDir / "server"
 
         self.Duser_home = self.absGameDir
 
-        self.assets = joinpath(self.gameDir, "assets")
-        self.indexes = joinpath(self.assets, "indexes")
-        self.objects = joinpath(self.assets, "objects")
+        self.assets = self.gameDir / "assets"
+        self.indexes = self.assets / "indexes"
+        self.objects = self.assets / "objects"
 
-        self.libraries = joinpath(self.gameDir, "libraries")
+        self.libraries = self.gameDir / "libraries"
         
-        self.versions = joinpath(self.gameDir, "versions")
+        self.versions = self.gameDir / "versions"
 
         
 
     # 选择 version_id 后才能 self.client_jar self.client_json self.assetindex
-    def select_version_id(self, version_id=None):
+    def select_version_id(self, version_id: str| None =None):
         """
         param: version_id 默认为None, version_id 为非None 时为创建MC 目录构造。
         """
@@ -93,37 +95,29 @@ class McDirStruct:
                 sys.exit(1)
 
             elif version_id not in vers:
-                logger.warning(f"选择的游戏版本不存在")
+                logger.warning("选择的游戏版本不存在")
                 sys.exit(1)
 
             else:
-                logger.info("当前版本：{}".format(vers))
+                logger.info(f"当前版本：{vers}")
                 vers.sort()
                 self.version_id = vers[-1]
-                logger.info("默认选择版本：{}".format(self.version_id))
+                logger.info(f"默认选择版本：{self.version_id}")
 
-                self.client_jar = joinpath(self.versions, self.version_id, self.version_id + ".jar")
+                self.client_jar = self.versions.joinpath(self.version_id, self.version_id + ".jar")
 
-                self.client_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
+                self.client_json = self.versions.joinpath(self.version_id, self.version_id + ".json")
 
-                self.server_jar = joinpath(self.serverDir, "server-" + self.version_id + ".jar")
+                self.server_jar = self.serverDir.joinpath("server-" + self.version_id + ".jar")
             
         else:
             
             self.version_id = version_id
 
-            self.client_jar = joinpath(self.versions, self.version_id, self.version_id + ".jar")
+            self.client_jar = self.versions.joinpath(self.version_id, self.version_id + ".jar")
 
-            self.client_json = joinpath(self.versions, self.version_id, self.version_id + ".json")
+            self.client_json = self.versions.joinpath(self.version_id, self.version_id + ".json")
 
-            self.server_jar = joinpath(self.serverDir, "server-" + self.version_id + ".jar")
+            self.server_jar = self.serverDir.joinpath("server-" + self.version_id + ".jar")
 
         
-    def mk_dir_struct(self, version_id):
-        
-        for d in [self.gameDir, self.serverDir, self.assets, self.indexes, self.objects, self.libraries, self.versions, self.version_id]:
-        
-            try:
-                os.mkdir(d)
-            except FileExistsError:
-                continue 

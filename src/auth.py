@@ -4,17 +4,12 @@
 # author calllivecn <calllivecn@outlook.com>
 
 
-__all__ = (
-    "auth",
-)
-
-
-
 import re
 import sys
 import time
 import webbrowser
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -44,7 +39,7 @@ def utc2local(utc_dtm):
     local_tm = datetime.fromtimestamp(0)
     # py3.12
     # utc_tm = datetime.utcfromtimestamp(0)
-    utc_tm = datetime.fromtimestamp(0, datetime.UTC)
+    utc_tm = datetime.fromtimestamp(0, UTC)
     offset = local_tm - utc_tm
     return utc_dtm + offset
 
@@ -52,7 +47,7 @@ def utc2local(utc_dtm):
 def local2utc(local_dtm):
     # py3.12
     # return datetime.utcfromtimestamp(local_dtm.timestamp())
-    return datetime.fromtimestamp(local_dtm, datetime.UTC)
+    return datetime.fromtimestamp(local_dtm, UTC)
 
 
 # find_code = re.compile("https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
@@ -77,7 +72,7 @@ class MicrosoftAuthorized:
         self.username = username
         self.usercache = DotDict()
 
-        if self.username != None:
+        if self.username is not None:
             self.user_conf = CONF / (self.username + ".json")
             # 有token(xbox), 且没过期
             self.is_xbox_expires()
