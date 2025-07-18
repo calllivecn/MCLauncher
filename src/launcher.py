@@ -448,7 +448,7 @@ class MCL:
         tmp_dict = {'natives_directory': str(self.Djava_library_path),
         'launcher_name' : LAUNCHER,
         'launcher_version' : LAUNCHER_VERSION,
-        'classpath' : os.pathsep.join(self.classpath) + os.pathsep + str(self.client_jar)
+        'classpath' : os.pathsep.join([str(cp) for cp in self.classpath]) + os.pathsep + str(self.client_jar)
         }
 
         for option in jvms:
