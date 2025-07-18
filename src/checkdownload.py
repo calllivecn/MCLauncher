@@ -328,6 +328,9 @@ def export_game(directory: str):
 
         logger.info(f"export: {savepath_new}")
         copy(savepath, savepath_new)
+    
+    # 把自身也复制过去
+    copy(sys.argv[0], mds_new.absGameDir)
 
 
 

@@ -23,3 +23,5 @@ MCLauncher.pyz
 !testing/1.*.*.json
 !testing/version_manifest.json
 
+build/
+dist/
