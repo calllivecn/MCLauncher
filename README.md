@@ -5,6 +5,10 @@
 	1. 有了GUI， 还没接入。
 	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)：1.13.x ~ 1.21.x (minimumLauncherVersion: 21)
 
+CHANGELOG 2025-xx-xx：
+	1. 需要python 3.12以上
+	2. ...
+
 CHANGELOG 2024-12-25：
 
 	1. 修复windows问题。

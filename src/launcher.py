@@ -301,7 +301,6 @@ class MCL:
                 logger.warning(f"不存在：{cp_class}")
 
         self.classpath = cp
-        logger.debug(f"self.classpath -- >\n{self.classpath}")
 
     
     def get_game_args(self):
@@ -316,8 +315,8 @@ class MCL:
             logger.error("解析 argments 或 game 时错误")
             sys.exit(1)
         
-        allow = True
         for value in value_list:
+            allow = False # 默认不启用预制参数。
 
             logger.debug(f"解析 game_ages 参数：{value}")
             if isinstance(value, dict):
@@ -339,7 +338,6 @@ class MCL:
                     elif rule.action == "disallow":
                         allow = False
                         continue
-
 
             elif isinstance(value, str):
                 if value.startswith("${") and value.endswith("}"):
@@ -461,11 +459,10 @@ class MCL:
             if option.startswith("${") and option.endswith("}"):
                 op = option[2:][:-1]
                 if op in tmp_dict:
-                    logger.debug(f"{op} in tmp_dict value: {tmp_dict[op]}")
                     self.jvm_args.append(tmp_dict[op])
 
             elif option.find("${") and option.endswith("}"):
-                logger.debug(f"jvm=${{}} 类型参数: {option}")
+                logger.debug(f"jvm=${{{option}}} 类型参数: {option}")
 
                 index = option.find("${")
                 key = option[index:][2:][:-1]

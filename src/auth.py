@@ -37,21 +37,15 @@ MC 认证过程文档：https://wiki.vg/ZH:Microsoft_Authentication_Scheme
 
 def utc2local(utc_dtm):
     local_tm = datetime.fromtimestamp(0)
-    # py3.12
-    # utc_tm = datetime.utcfromtimestamp(0)
     utc_tm = datetime.fromtimestamp(0, UTC)
     offset = local_tm - utc_tm
     return utc_dtm + offset
 
 
 def local2utc(local_dtm):
-    # py3.12
-    # return datetime.utcfromtimestamp(local_dtm.timestamp())
     return datetime.fromtimestamp(local_dtm, UTC)
 
 
-# find_code = re.compile("https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
-# py3.12
 find_code = re.compile(r"https\://login\.live\.com/oauth20_desktop\.srf\?code=(.*?)&lc=(.*?)")
 
 class AuthorizedError(Exception):
