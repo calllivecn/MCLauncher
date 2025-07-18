@@ -319,7 +319,7 @@ def export_game(directory: str):
 
     logger.info("开始导出 objects 资源")
     resources = get_json(assetindex_realpath)
-    objects = resources.get("objects")
+    objects = resources["objects"]
 
     for v in objects.values():
         hash_value = v["hash"]

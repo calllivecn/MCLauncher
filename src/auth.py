@@ -53,7 +53,7 @@ class AuthorizedError(Exception):
 
 class MicrosoftAuthorized:
     """
-    使用讲法：
+    使用：
     1. account = microsoftAuthorized(username)
     2. uesrnaem, uuid, accesstoken = account.user()
     """
@@ -123,7 +123,7 @@ class MicrosoftAuthorized:
         else:
             logger.debug("MC accesstoken 没过期直接使用。")
     
-    def user(self):
+    def user(self) -> tuple[str, str, str]:
         return self.usercache.username, self.usercache.uuid, self.usercache.mc_access_token
 
     # Microsoft auth
@@ -274,7 +274,7 @@ class MicrosoftAuthorized:
             return True
     
     # get MC profile
-    def get_mc_profile(self, access_token):
+    def get_mc_profile(self, access_token: str) -> dict:
         """
         正确返回：
         {

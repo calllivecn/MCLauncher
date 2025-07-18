@@ -280,7 +280,7 @@ def diffsha1(sha: str, filename: Path):
 
 def get_resources(mc_obj, savepath: Path):
     hash_value = mc_obj.get("hash")
-    size = mc_obj.get("size")
+    # size = mc_obj.get("size")
 
     url = "/".join([RESOURCES_OBJECTS, hash_value[0:2], hash_value])
 

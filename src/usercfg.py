@@ -27,6 +27,8 @@ class UserCFG:
         self._v = None
         self.resolution = None
 
+        self.username: str = ""
+
         # 是否更新配置
         self.UPDATE_CFG = False
 
