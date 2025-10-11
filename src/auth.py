@@ -322,7 +322,7 @@ class MicrosoftAuthorized:
     def is_xbox_expires(self):
         # dotdict = DotDict()
         if self.user_conf.exists() and self.user_conf.is_file():
-            with open(self.user_conf) as f:
+            with open(self.user_conf, encoding="utf8") as f:
                 self.usercache.load(f)
         else:
             self.usercache = DotDict()
@@ -357,7 +357,7 @@ class MicrosoftAuthorized:
 
     def save(self):
         self.user_conf = CONF / (self.username + ".json")
-        with open(self.user_conf, "w") as f:
+        with open(self.user_conf, "w", encoding="utf8") as f:
             self.usercache.dump(f, ensure_ascii=False, indent=4)
 
 
