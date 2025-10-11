@@ -2,7 +2,6 @@ name: Python application
 on:
   push:
     branches:
-      - master
       - devel
 
 jobs:
@@ -18,9 +17,15 @@ jobs:
 
     - name: 跑起来～
       run: |
+        echo "安装uv"
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv python install 3.12
+        uv venv build-uv-venv
+        source build-uv-venv/bin/activate
+        echo "安装uv+启用虚拟环境"
         ls -lh
         echo "==================="
-        pip install -U --break-system-package -r requireument.txt
+        uv pip install -r requireument.txt
         pyinstaller main.spec
         echo "==================="
         ls -lh
