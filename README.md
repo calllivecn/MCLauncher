@@ -5,9 +5,10 @@
 	1. 有了GUI， 还没接入。
 	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)：1.13.x ~ 1.21.x (minimumLauncherVersion: 21)
 
-CHANGELOG 2025-xx-xx：
+CHANGELOG 2025-10-10：
 	1. 需要python 3.12以上
-	2. ...
+    2. 修复一些小问题
+    3. 使用pyinstaler打包生成，直接执行二进制文件。
 
 CHANGELOG 2024-12-25：
 
@@ -40,7 +41,7 @@ CHANGELOG 2020-08-06：
 CHANGELOG 2020-08-05：
 
 	1. 选择一个游戏版本进行导出(--export-game)
-	2. 游戏资源--check-game添加。
+	2. 游戏资源检查+修补(--check-game)
 	3. 支持选择(--select-version)游戏版本启动, 默认启动本地最新版。
 
 ### 使用注意事项：
