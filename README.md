@@ -6,6 +6,7 @@
 	2. 不同版本，需要不同的启动解析方式。目前只支持(可能及以上)：1.13.x ~ 1.21.x (minimumLauncherVersion: 21)
 
 CHANGELOG 2025-10-10：
+
 	1. 需要python 3.12以上
     2. 修复一些小问题
     3. 使用pyinstaler打包生成，直接执行二进制文件。
