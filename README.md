@@ -10,6 +10,7 @@ CHANGELOG 2025-10-10：
 	1. 需要python 3.12以上
     2. 修复一些小问题
     3. 使用pyinstaler打包生成，直接执行二进制文件。
+	4. 支持fabric。
 
 CHANGELOG 2024-12-25：
 
