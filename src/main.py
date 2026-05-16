@@ -111,8 +111,9 @@ def main():
     
 
     # 有更新保存配置，无更新不保存配置。如果是临时用户不保存。
-    if not args.username_tmp:
-        usercfg.set_cfg()
+    # if not args.username_tmp:
+    usercfg.UPDATE_CFG = not args.username_tmp
+    usercfg.set_cfg()
 
     if usercfg.resolution is None:
         height = None
@@ -120,10 +121,11 @@ def main():
     else:
         width, height  = usercfg.resolution.split("x")
 
+
     mds.select_version_id(usercfg.currentversion)
 
     if args.verbose >= 3:
-        # debug = True
+        # debug = True 只输出日志和参数，不运行游戏
         mclauncher = MCL(usercfg.username, usercfg.uuid, usercfg.accesstoken, mds, width, height, debug=True)
     else:
         # debug = False
