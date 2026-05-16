@@ -46,7 +46,7 @@ def parse_args():
 
     parse.add_argument("--java-path", action="store", help="指定java路径")
 
-    parse.add_argument("--jvm-args", action="store", help="设置jvm自定义参数")
+    parse.add_argument("--jvm-args", action="store", help="设置额外jvm自定义参数")
 
     parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose。-vvv：只输出日志和启用参数，不运行游戏。")
 
@@ -97,9 +97,9 @@ def main():
     usercfg = UserCFG(args)
 
     # 检测玩家游戏名
-    bool_, msg = check_username(args.username)
+    bool_, msg = check_username(usercfg.username)
     if not bool_:
-        logger.error(f"玩家名称: [{args.username}] 不合法。{msg}")
+        logger.error(f"玩家名称: [{usercfg.username}] 不合法。{msg}")
         sys.exit(1)
 
     # 更新游戏版本

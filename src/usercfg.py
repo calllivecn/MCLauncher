@@ -99,8 +99,6 @@ class UserCFG:
             if args.jvm_args:
                 self.UPDATE_CFG = True
                 self.jvm_args = args.jvm_args
-        else:
-            self.jvm_args = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"
         
         if GAME_CONFIG.exists():
             if args.resolution:
