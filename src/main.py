@@ -18,6 +18,7 @@ from initconfig import McDirStruct
 from version import LAUNCHER_VERSION
 from funcs import select_local
 from usercfg import UserCFG
+from usernamecheck import check_username
 
 
 def parse_args():
@@ -90,6 +91,11 @@ def main():
         checkdownload.export_game(args.export_game)
         sys.exit(0)
 
+    # 检测玩家游戏名
+    bool_, msg = check_username(args.username)
+    if not bool_:
+        logger.error(f"玩家名称: [{args.username}] 不合法。{msg}")
+        sys.exit(1)
 
     mds = McDirStruct()
     os.chdir(mds.Duser_home)

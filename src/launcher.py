@@ -58,6 +58,8 @@ class MCL:
         self.username = username
         self.uuid = uuid
         self.accesstoken = accesstoken
+        self.clientid = ""
+        self.xuid = ""
         self.Duser_home = mds.Duser_home
         
         self.mds = mds
@@ -235,23 +237,11 @@ class MCL:
             # 如果有rules ， 就需要看在什么条件下启用。
             if class_jar_info.rules:
                 for rule in class_jar_info.rules:
-                    if rule.action == 'allow':
-                        if rule.os:
-                            if rule.os.name == OSTYPE:
-                                allow = True
-                            else:
-                                allow = False
-                        else:
+                    if rule.os:
+                        if rule.os.name == OSTYPE:
                             allow = True
-
-                    elif rule.action == 'disallow':
-                        if rule.so:
-                            if rule.os.name == OSTYPE:
-                                allow = False
-                            else:
-                                allow = True
                         else:
-                            allow = True
+                            allow = False
 
             if allow:
                 downloads = class_jar_info.downloads
@@ -261,7 +251,6 @@ class MCL:
             # else:
                 # continue
 
-            
             # 判断 native 不知道从那个版开始没有natives了。但是启动器版号还是没变更。
             # 这版开始的？不需要启动器解压动态库了。2025-07-18
             if class_jar_info.natives:
@@ -318,12 +307,14 @@ class MCL:
             allow = False # 默认不启用预制参数。
 
             logger.debug(f"解析 game_ages 参数：{value}")
-            if isinstance(value, dict):
 
+            if isinstance(value, dict):
+                pass
+                """
+                # 目前看带 rules 的参数都是不需要的！？ 2026-05-16
                 rules = value["rules"]
                 logger.debug(f"rules: {rules}")
                 for rule in rules:
-
                     if rule.action == "allow":
                         if rule.features:
                             for k in rule.features.keys():
@@ -337,29 +328,20 @@ class MCL:
                     elif rule.action == "disallow":
                         allow = False
                         continue
+                """
 
             elif isinstance(value, str):
-                if value.startswith("${") and value.endswith("}"):
-                    mc_args.append(value)
-                else:
-                    mc_args.append(value)
-
+                mc_args.append(value)
                 continue
 
             else:
                 logger.warning(f"未知 minecraft 参数：{value} 尝试忽略。")
                 continue
 
-            # # #############
-            
             if allow:
                 logger.debug(f"启用 minecraft 参数：{value}。")
                 for option in value["value"]:
-
-                    if option.startswith("${") and option.endswith("}"):
-                        mc_args.append(value)
-                    else:
-                        mc_args.append(value)
+                    mc_args.append(value)
             else:
                 logger.debug(f"不启用 minecraft 参数：{value}。")
                 continue
@@ -371,24 +353,19 @@ class MCL:
                     'assets_index_name': self.mc_json.get('assets'),
                     'auth_uuid': self.uuid,
                     'auth_access_token': self.accesstoken,
+                    '--clientId': self.clientid,
+                    '--xuid': self.xuid,
                     'user_type': 'mojang',
                     # 'user_type': 'legacy',
                     'version_type': self.mc_json.get('type'),
                     }
         
-        self.minecraft_args = []
-        for option in mc_args:
-            if option.startswith("${") and option.endswith("}"):
-                op = option[2:][:-1]
-                if op in minecraft_args_build_dict:
-                    self.minecraft_args.append(minecraft_args_build_dict[op])
-
-            elif option.startswith("--"):
-                self.minecraft_args.append(option)
+        for v in mc_args:
+            self.minecraft_args.append(Template(v).safe_substitute(minecraft_args_build_dict))
 
         if self.height is not None and self.width is not None:
             self.minecraft_args.append('--height')
-            self.minecraft_args.append(self.height) 
+            self.minecraft_args.append(self.height)
             self.minecraft_args.append('--width')
             self.minecraft_args.append(self.width)
 
@@ -469,8 +446,11 @@ class MCL:
         'classpath' : os.pathsep.join([str(cp) for cp in self.classpath]) + os.pathsep + str(self.client_jar)
         }
 
-        self.jvm_args = Template(" ".join(jvms)).safe_substitute(tmp_dict).split()
+        logger.debug(f"jvms 参数变量替换前：{jvms}")
 
-        logger.debug(f"jvm 参数：{self.jvm_args}")
+        for v in jvms:
+            self.jvm_args.append(Template(v).safe_substitute(tmp_dict))
+
+        logger.debug(f"jvm 参数变量替换后：{self.jvm_args}")
 
 

@@ -2,7 +2,8 @@ name: Python application
 on:
   push:
     branches:
-      - master
+      # - master
+      - ci
 
 jobs:
   build-linux:
