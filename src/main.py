@@ -14,7 +14,8 @@ from logs import logger, setLevel
 
 import checkdownload
 from launcher import MCL
-from initconfig import LAUNCHER_VERSION, McDirStruct
+from initconfig import McDirStruct
+from version import LAUNCHER_VERSION
 from funcs import select_local
 from usercfg import UserCFG
 
@@ -46,7 +47,7 @@ def parse_args():
 
     parse.add_argument("--jvm-args", action="store", help="设置jvm自定义参数")
 
-    parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose")
+    parse.add_argument("-v", "--verbose", action="count", default=0, help="verbose。-vvv：只输出日志和启用参数，不运行游戏。")
 
     parse.add_argument("--parse", action="store_true", help=argparse.SUPPRESS)
 
@@ -109,7 +110,7 @@ def main():
         # usercfg.currentversion = select_local(mds.versions, latest=True)
     
 
-    # 有更新保存配置，无更新不保存配置。
+    # 有更新保存配置，无更新不保存配置。如果是临时用户不保存。
     if not args.username_tmp:
         usercfg.set_cfg()
 

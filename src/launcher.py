@@ -10,11 +10,13 @@ import sys
 import time
 import shutil
 import pprint
+import subprocess
 import atexit
 from pathlib import Path
+from string import Template
 from urllib import parse
 from zipfile import ZipFile
-from subprocess import run, CalledProcessError
+
 
 
 from logs import logger
@@ -30,6 +32,10 @@ from initconfig import (
     McDirStruct,
     CONF,
     OSTYPE,
+    WIN_VERSION,
+)
+
+from version import (
     LAUNCHER,
     LAUNCHER_VERSION,
 )
@@ -70,10 +76,13 @@ class MCL:
         self.client_jar = mds.client_jar
         self.client_json = mds.client_json
 
-        self.Djava_library_path = ''
+        self.Djava_library_path: str = ''
 
-        self.jvm_args = []
-        self.minecraft_args = []
+        # 1.21 新更新的
+        self.default_user_jvms: list = []
+
+        self.jvm_args: list = []
+        self.minecraft_args: list = []
         
 
         self.height = height
@@ -92,12 +101,6 @@ class MCL:
         self.timestamp = str(time.time_ns())
         self.__get_Djava_library_path()
 
-        # 黙认 java 路径
-        # self.java_path = "java"
-
-        # 黙认 jvm_customize_args
-        # self.jvm_customize_args = "-XX:+UseConcMarkSweepGC -XX:-UseAdaptiveSizePolicy -Xmn512M".split()
-
         # 从${version}.json里解析
         self.get_game_args()
 
@@ -108,25 +111,25 @@ class MCL:
             self.get_classpath()
             self.fabric()
             self.get_jvm_args()
-            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + self.fabric_arguments_jvm + [self.fabric_mainClass] + self.minecraft_args
+            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.default_user_jvms + self.jvm_args + self.fabric_arguments_jvm + [self.fabric_mainClass] + self.minecraft_args
         else:
 
             self.get_classpath()
             self.get_jvm_args()
 
-            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.jvm_args + [self.mainclass] + self.minecraft_args
+            self.launcher_cmd = [self.java_path] + self.jvm_customize_args + self.default_user_jvms + self.jvm_args + [self.mainclass] + self.minecraft_args
 
         # 注册清理函数
         atexit.register(self.clear_natives)
 
-        logger.info("MC Launcher CMD：{}".format(pprint.pformat(self.launcher_cmd)))
+        logger.info(f"MC Launcher CMD：{pprint.pformat(self.launcher_cmd)}")
 
         if self.debug:
             sys.exit(0)
 
         try:
-            run(self.launcher_cmd, check=True)
-        except CalledProcessError as e:
+            subprocess.run(self.launcher_cmd, check=True)
+        except subprocess.CalledProcessError as e:
             logger.error(e)
             sys.exit(1)
     
@@ -170,7 +173,6 @@ class MCL:
 
     def set_java_path(self, java_path: str):
         self.java_path = java_path
-
 
     def set_jvm_customize_args(self, jvm_customize_args: str):
         self.jvm_customize_args = jvm_customize_args.split()
@@ -392,42 +394,56 @@ class MCL:
 
         logger.debug(f"mc game 启动参数：{self.minecraft_args}")
 
+    # 1.21 新添加的
+    def get_default_user_jvm(self):
+        """
+        这里的有rules的情况下allow的默认就是disable的，需要在action是allow 时才启用这个参数
+        """
+
+        if default_user_jvm_list := self.mc_json["arguments"].get("default-user-jvm"):
+            
+            for jvm in default_user_jvm_list:
+
+                if rules := jvm.get("rules"):
+            
+                    for rule in rules:
+                        if rule["os"]["name"] == OSTYPE:
+                            default_user_jvms += jvm["value"]
+            
+                else:
+                    default_user_jvms += jvm["value"]
+
+        
 
     def get_jvm_args(self):
         
         jvms = []
         jvm_list = self.mc_json["arguments"]["jvm"]
 
-        allow = True
+        allow = False
         for option_dict in jvm_list:
 
             if isinstance(option_dict, dict):
+                if rules := option_dict.get("rules"):
 
-                for rule in option_dict["rules"]:
-
-                    if rule.action == "allow":
-                        if rule.os:
-                            if rule.os.name:
-                                if rule.os.name == OSTYPE:
-                                # 停时先不管os 版本
-                                #  if allow_os.get("verions") == ""
+                    for rule in rules:
+                        if os_ := rule.get("os"):
+                            if os_name := os_.get("name"):
+                                if os_name == OSTYPE:
                                     allow = True
-                                else:
-                                    allow = False
-                            else:
-                                allow = False
-                        else:
-                            allow = False
-
-                    elif rule.action == "disallow":
-
-                        if rule.so.name:
-                            if rule.os.name == OSTYPE:
-                                allow = False
-                            else:
-                                allow = True
-                        else:
-                            allow = False
+                            """
+                            有一个概念需要先厘清：
+                                在 Mojang 的 version.json 规范中，x86 特指 32 位的 x86 架构，而 64 位的 x86 架构通常会被标记为 x86_64 或 amd64。
+                            这一段配置的目的是：
+                                在 32 位系统上，由于可用内存地址空间有限，默认的线程栈大小（Stack Size）
+                                可能不够游戏高频调用（容易引发 StackOverflowError），所以强制将其放大到 -Xss1M（1 Megabyte）。
+                            
+                            # 可以不管
+                            elif os_ := rule.get("os"):
+                                if os_arch := os_.get("arch"):
+                                  if os_arch == "x86":
+                                      allow = True
+                            """
 
             elif isinstance(option_dict, str):
                 jvms.append(option_dict)
@@ -437,8 +453,10 @@ class MCL:
                 value = option_dict.get("value")
                 if isinstance(value, list):
                     jvms += value
+
                 elif isinstance(value, str):
                     jvms.append(value)
+                
                 else:
                     logger.warning(f"启用的 jvm 参数， 但不是 list, str。: {value}")
             else:
@@ -451,31 +469,7 @@ class MCL:
         'classpath' : os.pathsep.join([str(cp) for cp in self.classpath]) + os.pathsep + str(self.client_jar)
         }
 
-        for option in jvms:
-            logger.debug(f"解析 jvm 参数: {option}")
-            if option.startswith("${") and option.endswith("}"):
-                op = option[2:][:-1]
-                if op in tmp_dict:
-                    self.jvm_args.append(tmp_dict[op])
-
-            elif option.find("${") and option.endswith("}"):
-                logger.debug(f"jvm=${{{option}}} 类型参数: {option}")
-
-                index = option.find("${")
-                key = option[index:][2:][:-1]
-
-                if key in tmp_dict:
-                    op = option[:index] + tmp_dict[key]
-                    self.jvm_args.append(op)
-                    logger.debug(f"添加参数： {op}")
-                else:
-                    logger.warning(f"没有找到 {option} 参数的值。")
-
-            elif option.startswith("-"):
-                self.jvm_args.append(option)
-
-            else:
-                logger.warning(f"未知参数：{option}")
+        self.jvm_args = Template(" ".join(jvms)).safe_substitute(tmp_dict).split()
 
         logger.debug(f"jvm 参数：{self.jvm_args}")
 

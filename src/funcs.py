@@ -35,6 +35,7 @@ import os
 import sys
 import json
 import socket
+import subprocess
 from pathlib import Path
 from hashlib import md5, sha1
 # from urllib.parse import urlsplit
@@ -57,6 +58,27 @@ USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"}
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"}
+
+
+# 查看指定java主版本号
+def get_java_major_version(java_path: Path = Path("java")) -> int:
+
+    # 启动 java 进程输出属性
+    cmd = [java_path, "-XshowSettings:properties", "-version"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+
+    # 解析 key = value 结构
+    # java_info = {}
+    for line in res.stderr.splitlines():
+        if "=" in line:
+            k, v = map(str.strip, line.split("=", 1))
+            # 仅截取核心版本信息
+            # if k.startswith("java.version") or k.startswith("java.vm"):
+                # java_info[k] = v
+
+            if k == "java.specification.version":
+                return int(v)
+
 
 BLOCK = 1<<14 # 16k
 

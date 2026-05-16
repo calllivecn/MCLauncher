@@ -19,15 +19,16 @@ __all__ = [
 
 
 import os
+import re
 import sys
 from pathlib import Path
-from platform import system #, process
+from platform import system, platform #, process
 
 
 from logs import logger
 
-LAUNCHER = "MCL"
-LAUNCHER_VERSION = "v1.8.5"
+from version import LAUNCHER, LAUNCHER_VERSION
+
 
 VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 RESOURCES_OBJECTS = "https://resources.download.minecraft.net/" # + hash_val[0:2] + "/" + hash_val
@@ -43,6 +44,22 @@ if not CONF.exists():
 
 
 OSTYPE = system().lower()
+
+def get_windows_version_string() -> str:
+    # platform.platform() 在 Win10+ 下通常返回类似: "Windows-10-10.0.19045-SP0" 
+    # 或者在较新 Python 版本中返回: "Windows-11-10.0.22631-SP0"
+    plat_str = platform()
+    
+    # 使用正则匹配出中间的 10.0.xxxxx 结构
+    match = re.search(r'(\d+\.\d+\.\d+)', plat_str)
+    if match:
+        return match.group(1)
+
+    return "0.0.0"
+
+WIN_VERSION = "0.0.0"
+if OSTYPE == "windows":
+    WIN_VERSION = get_windows_version_string()
 
 
 class McDirStruct:
