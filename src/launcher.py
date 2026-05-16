@@ -187,7 +187,11 @@ class MCL:
                 self.game_java_version = v
 
                 # 和当前java环境比较
-                java_version = get_java_major_version()
+                try:
+                    java_version = get_java_major_version(Path(self.java_path))
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"{e}\n没有找到 java 环境. ")
+                    sys.exit(1)
 
                 if java_version >= self.game_java_version:
                     logger.debug(f"当前的java版本 可以运行 当前游戏版本。{java_version=} {self.game_java_version=}")
@@ -197,12 +201,15 @@ class MCL:
 
 
     def set_java_path(self, java_path: str):
+        """
         p = Path(java_path)
         if p.is_file():
             self.java_path = java_path
         else:
             logger.error("没有找到java环境")
             sys.exit(1)
+        """
+        self.java_path = java_path
 
 
     def set_jvm_customize_args(self, jvm_customize_args: str):

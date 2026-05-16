@@ -61,7 +61,7 @@ USER_AGENT = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 
 
 
 # 查看指定java主版本号
-def get_java_major_version(java_path: Path = Path("java")) -> int:
+def get_java_major_version(java_path: Path) -> int:
 
     # 启动 java 进程输出属性
     cmd = [java_path, "-XshowSettings:properties", "-version"]
