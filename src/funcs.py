@@ -78,6 +78,8 @@ def get_java_major_version(java_path: Path = Path("java")) -> int:
 
             if k == "java.specification.version":
                 return int(v)
+    
+    return 0
 
 
 BLOCK = 1<<14 # 16k

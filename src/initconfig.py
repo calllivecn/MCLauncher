@@ -19,10 +19,10 @@ __all__ = [
 
 
 import os
-import re
+# import re
 import sys
 from pathlib import Path
-from platform import system, platform #, process
+from platform import system #, platform #, process
 
 
 from logs import logger
@@ -45,6 +45,7 @@ if not CONF.exists():
 
 OSTYPE = system().lower()
 
+r"""
 def get_windows_version_string() -> str:
     # platform.platform() 在 Win10+ 下通常返回类似: "Windows-10-10.0.19045-SP0" 
     # 或者在较新 Python 版本中返回: "Windows-11-10.0.22631-SP0"
@@ -60,7 +61,7 @@ def get_windows_version_string() -> str:
 WIN_VERSION = "0.0.0"
 if OSTYPE == "windows":
     WIN_VERSION = get_windows_version_string()
-
+"""
 
 class McDirStruct:
     """

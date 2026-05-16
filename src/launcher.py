@@ -27,12 +27,13 @@ from funcs import (
     getcp,
     # DotDict,
     get_dotdict,
+    get_java_major_version,
 )
 from initconfig import (
     McDirStruct,
     CONF,
     OSTYPE,
-    WIN_VERSION,
+    # WIN_VERSION,
 )
 
 from version import (
@@ -78,7 +79,7 @@ class MCL:
         self.client_jar = mds.client_jar
         self.client_json = mds.client_json
 
-        self.Djava_library_path: str = ''
+        self.Djava_library_path: Path = Path()
 
         # 1.21 新更新的
         self.default_user_jvms: list = []
@@ -108,6 +109,8 @@ class MCL:
 
 
     def launcher(self):
+
+        self.compare_java_major_version()
 
         if "fabric" in self.version_id:
             self.get_classpath()
@@ -171,10 +174,36 @@ class MCL:
                 dler.submit((url, cp))
                 self.fabric_libraries_cp.append(cp)
                 # sys.exit(1)
-    
+
+
+    def compare_java_major_version(self):
+        """
+        比较当前java版本满不满足，游戏的最低版本要求
+        """
+
+        # 如果游戏有要求(就是有这个字段)
+        if game_java_version := self.mc_json.get("javaVersion"):
+            if v := game_java_version.get("majorVersion"):
+                self.game_java_version = v
+
+                # 和当前java环境比较
+                java_version = get_java_major_version()
+
+                if java_version >= self.game_java_version:
+                    logger.debug(f"当前的java版本 可以运行 当前游戏版本。{java_version=} {self.game_java_version=}")
+                else:
+                    logger.error(f"当前的java版本 无法运行 当前游戏版本。{java_version=} {self.game_java_version=}")
+                    sys.exit(1)
+
 
     def set_java_path(self, java_path: str):
-        self.java_path = java_path
+        p = Path(java_path)
+        if p.is_file():
+            self.java_path = java_path
+        else:
+            logger.error("没有找到java环境")
+            sys.exit(1)
+
 
     def set_jvm_customize_args(self, jvm_customize_args: str):
         self.jvm_customize_args = jvm_customize_args.split()
@@ -190,7 +219,7 @@ class MCL:
         
 
     def __get_Djava_library_path(self):
-        if self.Djava_library_path == "": 
+        if self.Djava_library_path == Path(): 
             self.Djava_library_path = CONF.joinpath(self.version_id + '-natives-' + self.timestamp)
             self.Djava_library_path.mkdir()
         logger.debug(f"Djava_libaray_path: {self.Djava_library_path}")
@@ -371,6 +400,7 @@ class MCL:
 
         logger.debug(f"mc game 启动参数：{self.minecraft_args}")
 
+
     # 1.21 新添加的
     def get_default_user_jvm(self):
         """
@@ -385,12 +415,11 @@ class MCL:
             
                     for rule in rules:
                         if rule["os"]["name"] == OSTYPE:
-                            default_user_jvms += jvm["value"]
+                            self.default_user_jvms += jvm["value"]
             
                 else:
-                    default_user_jvms += jvm["value"]
+                    self.default_user_jvms += jvm["value"]
 
-        
 
     def get_jvm_args(self):
         
