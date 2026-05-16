@@ -115,7 +115,7 @@ jobs:
         with:
           name: MCLauncher-Linux
           path: ./dist/linux
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }} # 场景 A：下载的是“当前工作流”自己刚生成的产物（最常见）如果你只是在同一个 Workflow 里面，前一个 Job 上传，后一个 Job 下载，你完全不需要传 token，直接删掉第 118 行即可
           run-id: ${{ steps.final_run_id.outputs.id }}
 
       - name: 下载 Windows 构建产物
@@ -123,7 +123,7 @@ jobs:
         with:
           name: MCLauncher-Windows
           path: ./dist/windows
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.final_run_id.outputs.id }}
 
       - name: 查看下载的产物
