@@ -33,7 +33,9 @@ def parse_args():
     parse.add_argument("--export-game", action="store", help="导出指定游戏版本到新目录")
 
     parse.add_argument("-u", "--username", action="store", help="MC 游戏用户名。和--online一起使用是切换微软账号。")
-    
+
+    parse.add_argument("-ut", "--username-tmp", action="store_true", default=False, help="临时启动一个用户名。和--username一起使用，不把当前用户信息写入配置。")
+
     parse.add_argument("--online", action="store_true", help="使用微软账号登录。单独使用时，是添加一个新的微软账号。")
 
     parse.add_argument("--select-version", action="store_true", help="交互选择游戏版本。")
@@ -108,7 +110,8 @@ def main():
     
 
     # 有更新保存配置，无更新不保存配置。
-    usercfg.set_cfg()
+    if not args.username_tmp:
+        usercfg.set_cfg()
 
     if usercfg.resolution is None:
         height = None
