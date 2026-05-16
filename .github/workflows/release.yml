@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  # 1. 手动触发 (推荐用于正式发布，可控性强)
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release 标签名 (例如 v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      build_run_id:
+        description: '构建工作流的 Run ID (数字，可在构建页面 URL：https://github.com/<github username>/<repo>/actions/runs/23302904998 中找到 23302904998 就是run-id，留空则尝试获取最近的)'
+        required: false
+        type: string
+
+  # 2. 自动触发：当向 master 分支推送标签时触发
+  # 场景：你在本地执行 git tag v1.0.0 && git push origin v1.0.0
+  push:
+    tags:
+      - 'v*'  # 匹配所有以 v 开头的标签，如 v1.0.0, v2.1.3
+    # branches:
+    #   - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    # 【关键】在这里添加 AND 逻辑判断
+    # 只有当：事件是推送标签 (push) 且 分支是 master 时，才运行此 Job
+    # 如果是手动触发 (workflow_dispatch)，github.ref_type 不是 'tag'，所以需要额外允许手动触发
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.ref_type == 'tag' && github.base_ref == 'master')
+    
+    steps:
+      # 步骤 1: 确定要使用的标签名和构建运行 ID
+      - name: 设置变量
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # 手动触发：使用输入的标签名
+            echo "tag_name=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
+            # 如果手动输入了 run_id 则使用，否则留空（后续逻辑需处理，这里假设手动必须填或你有其他机制）
+            # 为了简化，手动模式通常强依赖用户输入 run_id，或者你需要在这里添加逻辑去查找最新的成功构建
+            echo "run_id=${{ inputs.build_run_id }}" >> $GITHUB_OUTPUT
+          else
+            # 自动触发：从推送的 ref 中获取标签名 (例如 refs/tags/v1.0.0 -> v1.0.0)
+            echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            # 自动触发模式下，很难直接知道对应的构建 Run ID
+            # 策略：通常建议自动触发时，构建和发布在同一个工作流，或者通过 API 查找
+            # 这里为了保持你的逻辑，我们假设自动触发时，我们需要通过 API 查找最近一次成功的构建
+            # 注意：这需要额外的步骤调用 GitHub API，比较复杂。
+            # 【简化方案】：自动触发通常不建议跨工作流下载产物，除非构建工作流也由 tag 触发并传递信息。
+            # 如果你坚持跨工作流，自动模式下获取 Run ID 非常麻烦。
+            # 建议：自动触发模式仅用于简单发布，或者将构建和发布合并。
+            # 此处暂时留空，并在下一步做判断。
+            echo "run_id=" >> $GITHUB_OUTPUT
+          fi
+
+      # 步骤 2: (仅限手动模式或已获取到 Run ID 的情况) 下载产物
+      # 注意：自动触发模式下，如果没有有效的 run_id，download-artifact 会失败。
+      # 解决方案：如果是自动触发，通常建议构建工作流也监听 tag 推送，并将产物上传到本次运行，而不是跨运行下载。
+      # 鉴于你的需求是跨工作流，这里主要适配手动模式。
+      # 如果必须支持自动跨工作流，需要增加调用 GitHub API 搜索 "workflow runs" 的步骤。
+      
+      - name: 查找最近的构建运行 (仅自动触发时需要)
+        if: github.event_name != 'workflow_dispatch'
+        id: find_build
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'pythonapp.yml', // 替换为你构建工作流的文件名
+              branch: 'ci',
+              status: 'success',
+              per_page: 1
+            });
+            if (runs.data.workflow_runs.length > 0) {
+              console.log(`Found run ID: ${runs.data.workflow_runs[0].id}`);
+              return runs.data.workflow_runs[0].id;
+            } else {
+              throw new Error('No successful build run found');
+            }
+          result-encoding: string
+
+      - name: 确定最终 Run ID
+        id: final_run_id
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ -z "${{ inputs.build_run_id }}" ]; then
+              echo "错误：手动触发必须提供 build_run_id"
+              exit 1
+            fi
+            echo "id=${{ inputs.build_run_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "id=${{ steps.find_build.outputs.result }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 下载 Linux 构建产物
+        uses: actions/download-artifact@v6
+        with:
+          name: MCLauncher-Linux
+          path: ./dist/linux
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.final_run_id.outputs.id }}
+
+      - name: 下载 Windows 构建产物
+        uses: actions/download-artifact@v6
+        with:
+          name: MCLauncher-Windows
+          path: ./dist/windows
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.final_run_id.outputs.id }}
+
+      - name: 查看下载的产物
+        run: |
+          echo "=== Linux 产物 ==="
+          ls -lh ./dist/linux || echo "No linux files"
+          mv -v ./dist/linux/MCLauncher ./dist/linux/MCLauncher-linux
+          echo "=== Windows 产物 ==="
+          ls -lh ./dist/windows || echo "No windows files"
+          mv -v ./dist/windows/MCLauncher.exe ./dist/windows/MCLauncher-windows.exe
+
+      - name: 发布到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag_name }}
+          files: |
+            ./dist/linux/MCLauncher-linux
+            ./dist/windows/MCLauncher-windows.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

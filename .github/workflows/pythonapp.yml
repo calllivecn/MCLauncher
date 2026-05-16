@@ -60,7 +60,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: MCLauncher-${{ runner.os }}
-        path: dist\\MCLauncher.exe
+        path: dist/MCLauncher.exe
 
 #  upload:
 #    runs-on: ubuntu-latest
