@@ -32,7 +32,7 @@ jobs:
         ls -lh
 
     - name: 保存 MCLaunhcer-${{ runner.os }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: MCLauncher-${{ runner.os }}
         path: dist/MCLauncher
@@ -57,7 +57,7 @@ jobs:
         dir
 
     - name: 保存 MCLaunhcer-${{ runner.os }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: MCLauncher-${{ runner.os }}
         path: dist\\MCLauncher.exe
