@@ -14,7 +14,6 @@ on:
         description: '构建工作流的 Run ID (数字，可在构建页面 URL：https://github.com/<github username>/<repo>/actions/runs/23302904998 中找到 23302904998 就是run-id，留空则尝试获取最近的)'
         required: false
         type: string
-      
       release_type:
         description: '发布类型'
         required: true
