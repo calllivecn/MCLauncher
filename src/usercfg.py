@@ -29,6 +29,8 @@ class UserCFG:
 
         self.username: str = ""
 
+        self.jvm_args: str = ""
+
         # 是否更新配置
         self.UPDATE_CFG = False
 
@@ -88,12 +90,13 @@ class UserCFG:
         if args.username:
             self.UPDATE_CFG = True
 
-        if GAME_CONFIG.exists():
-            if args.java_path:
-                self.UPDATE_CFG = True
-                self.java_path = args.java_path
+
+        if args.java_path:
+            self.UPDATE_CFG = True
+            self.java_path = args.java_path
         else:
-            self.java_path = "java"
+            if not GAME_CONFIG.exists():
+                self.java_path = "java"
 
         if GAME_CONFIG.exists():
             if args.jvm_args:
@@ -121,7 +124,7 @@ class UserCFG:
                 self.accesstoken = self.user_data["accesstoken"]
                 self.currentversion = self.user_data['currentversion']
                 self.java_path = self.user_data['java-path']
-                self.jvm_args = self.user_data['jvm-args']
+                self.jvm_args = self.user_data.get('jvm-args', "")
                 self.online = self.user_data['online']
 
                 if self.user_data.resolution:
