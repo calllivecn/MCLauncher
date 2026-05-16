@@ -61,8 +61,3 @@ jobs:
       with:
         name: MCLauncher-${{ runner.os }}
         path: dist/MCLauncher.exe
-
-#  upload:
-#    runs-on: ubuntu-latest
-#    needs:
-#      - build
