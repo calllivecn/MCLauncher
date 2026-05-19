@@ -58,7 +58,7 @@ class MicrosoftAuthorized:
     2. uesrnaem, uuid, accesstoken = account.user()
     """
 
-    # Minecraft ID
+    # client_id：启动器预注册的微软应用ID（如HMCL使用00000000402b5328）。 Minecraft 官方启动器的 Client ID。
     CLIENT_ID="00000000402b5328"
 
     def __init__(self, username=None):
