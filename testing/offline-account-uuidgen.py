@@ -13,9 +13,12 @@ def get_offline_uuid(player_name: str) -> str:
     # 将第7个字节的高四位设置为 0x3
     md5_bytes = bytearray(md5_bytes)
     md5_bytes[6] = (md5_bytes[6] & 0x0F) | 0x30
-    # 将第9个字节的高两位设置为 0x2
+    # 将第9个字节的高两位设置为二进制 10 (RFC 4122 variant)
     md5_bytes[8] = (md5_bytes[8] & 0x3F) | 0x80
     
     # 4. 格式化为标准UUID字符串
     return str(uuid.UUID(bytes=bytes(md5_bytes)))
 
+
+if __name__ == "__main__":
+    print(get_offline_uuid("calllivecn"))
