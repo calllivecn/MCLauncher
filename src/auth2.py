@@ -64,16 +64,20 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.server.server_ready.set()  
 
         # 4. 返回用户友好页面
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html")
-        self.end_headers()
-        self.wfile.write("""
-            <html><body style="text-align: center; padding: 50px;">
+        # 必须声明 charset=utf-8，否则浏览器按默认编码解析会导致中文乱码
+        body = """
+            <html><head><meta charset="utf-8"></head><body style="text-align: center; padding: 50px;">
                 <h1>✅ 登录成功</h1>
                 <p>Microsoft账号已授权，可安全关闭此窗口</p>
                 <script>window.close()</script>
             </body></html>
-        """.encode())
+        """.encode("utf-8")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, format, *args): 
         return # 禁用日志
