@@ -1,5 +1,6 @@
 
 
+import time
 import httpx
 import secrets
 import string
@@ -9,6 +10,10 @@ import threading
 import webbrowser
 from urllib.parse import urlparse, parse_qs, urlencode
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+from logs import logger
+from initconfig import CONF
+from funcs import DotDict, get_dotdict, set_dotdict
 
 # ====== 配置参数 ======
 # HMCL 内置的 Microsoft OAuth App ID
@@ -168,16 +173,32 @@ def get_minecraft_token(ms_access_token):
         profile_resp.raise_for_status()
         return mc_token, profile_resp.json()
 
-def main():
-    # ===== 阶段1: 准备PKCE和CSRF防护 =====
+def refresh_microsoft_token(refresh_token):
+    """用 refresh_token 刷新微软令牌 (scope 含 offline_access)"""
+    data = {
+        "client_id": CLIENT_ID,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+        "scope": SCOPE,
+    }
+    with httpx.Client() as client:
+        resp = client.post(
+            TOKEN_ENDPOINT,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
+def interactive_login():
+    """交互式完成授权码流程，返回 (微软令牌, MC令牌, profile)"""
     state = secrets.token_urlsafe(16)  # CSRF令牌
     code_verifier, code_challenge = generate_pkce_codes()
-    
-    # ===== 阶段2: 启动本地HTTP服务 =====
-    server, server_thread = start_local_server(state)
-    print(f"✅ 本地服务已启动: {REDIRECT_URI}")
 
-    # ===== 阶段3: 构建授权URL并打开浏览器 =====
+    server, _ = start_local_server(state)
+    logger.info(f"本地服务已启动: {REDIRECT_URI}")
+
     params = {
         "client_id": CLIENT_ID,
         "response_type": "code",
@@ -188,48 +209,113 @@ def main():
         "code_challenge_method": "S256",
     }
     auth_url = f"{AUTH_ENDPOINT}?{urlencode(params)}"
-    print(f"🔗 请访问授权URL (已自动打开浏览器):\n{auth_url}")
+    logger.info(f"请访问授权URL (已自动打开浏览器): {auth_url}")
     webbrowser.open(auth_url)
 
-    # ===== 阶段4: 等待用户授权回调 =====
-    print("⏳ 等待用户授权... (120秒超时)")
-    if not server.server_ready.wait(timeout=120):
+    logger.info("等待用户授权... (120秒超时)")
+    try:
+        if not server.server_ready.wait(timeout=120):
+            raise TimeoutError("用户未在120秒内完成授权")
+
+        code = OAuthCallbackHandler.auth_code
+        if not code:
+            raise RuntimeError("未获取到授权码")
+
+        data = {
+            "client_id": CLIENT_ID,
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code",
+            "code_verifier": code_verifier,
+        }
+        with httpx.Client() as client:
+            resp = client.post(
+                TOKEN_ENDPOINT,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            resp.raise_for_status()
+            tokens = resp.json()
+    finally:
         server.shutdown()
-        raise TimeoutError("用户未在120秒内完成授权")
 
-    print(f"🔑 已获取授权码: {OAuthCallbackHandler.auth_code[:10]}... (安全隐藏)")
-
-    # ===== 阶段5: 用授权码换取令牌 =====
-    data = {
-        "client_id": CLIENT_ID,
-        "code": OAuthCallbackHandler.auth_code,
-        "redirect_uri": REDIRECT_URI,
-        "grant_type": "authorization_code",
-        "code_verifier": code_verifier
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    
-    with httpx.Client() as client:
-        resp = client.post(TOKEN_ENDPOINT, data=data, headers=headers)
-        resp.raise_for_status()
-        tokens = resp.json()
-    
-    print(f"🔐 已获取访问令牌: {tokens['access_token'][:15]}... (有效期 {tokens['expires_in']}秒)")
-
-    # ===== 阶段6: 换取 Minecraft 令牌并获取账户资料 =====
     mc_token, profile = get_minecraft_token(tokens["access_token"])
-    print("\n🎮 Minecraft账户信息:")
-    print(f"  - 用户名: {profile['name']}")
-    print(f"  - 账户ID: {profile['id']}")
-    print(f"  - 游戏许可证: ✅ 已购买")
+    return tokens, mc_token, profile
 
-    # ===== 清理 =====
-    server.shutdown()
-    print("\n🔒 本地服务已安全关闭")
+
+class MicrosoftAuthorized:
+    """使用：
+    1. account = MicrosoftAuthorized(username)
+    2. username, uuid, accesstoken = account.user()
+
+    缓存到 CONF/<username>.json，优先用 refresh_token 免重复浏览器登录。
+    """
+
+    def __init__(self, username=None):
+        self.username = username
+        self.user_conf = CONF / (username + ".json") if username else None
+        self.usercache = self._load_cache()
+
+        mc_access_token = self.usercache.get("mc_access_token")
+        mc_expires_at = self.usercache.get("mc_expires_at", 0)
+
+        # 1. MC token 未过期，直接使用
+        if mc_access_token and time.time() < mc_expires_at - 1800:
+            logger.debug("MC access_token 未过期，直接使用。")
+            return
+
+        # 2. 用 refresh_token 静默刷新
+        refresh_token = self.usercache.get("ms_refresh_token")
+        if refresh_token:
+            try:
+                logger.debug("使用 ms refresh_token 刷新令牌。")
+                tokens = refresh_microsoft_token(refresh_token)
+                self._save_login(tokens)
+                return
+            except Exception as e:
+                logger.warning(f"刷新令牌失败，转为重新登录: {e}")
+
+        # 3. 交互式登录
+        logger.info("需要 Microsoft 账号登录。")
+        tokens, mc_token, profile = interactive_login()
+        self._save_login(tokens, mc_token, profile)
+
+    def _save_login(self, tokens, mc_token=None, profile=None):
+        if mc_token is None or profile is None:
+            mc_token, profile = get_minecraft_token(tokens["access_token"])
+
+        self.username = profile["name"]
+        self.user_conf = CONF / (self.username + ".json")
+
+        cache = DotDict()
+        cache["username"] = profile["name"]
+        cache["uuid"] = profile["id"]
+        cache["mc_access_token"] = mc_token["access_token"]
+        cache["mc_expires_at"] = int(time.time()) + int(mc_token.get("expires_in", 86400))
+        cache["ms_refresh_token"] = tokens.get("refresh_token")
+        self.usercache = cache
+
+        set_dotdict(cache, self.user_conf)
+
+    def _load_cache(self):
+        if self.user_conf is not None and self.user_conf.exists() and self.user_conf.is_file():
+            try:
+                return get_dotdict(self.user_conf)
+            except Exception as e:
+                logger.warning(f"读取账号缓存失败: {e}")
+        return DotDict()
+
+    def user(self) -> tuple[str, str, str]:
+        return self.usercache.username, self.usercache.uuid, self.usercache.mc_access_token
+
 
 if __name__ == "__main__":
     try:
-        main()
+        _, mc_token, profile = interactive_login()
+        print("\n🎮 Minecraft账户信息:")
+        print(f"  - 用户名: {profile['name']}")
+        print(f"  - 账户ID: {profile['id']}")
+        print(f"  - 游戏许可证: ✅ 已购买")
     except Exception as e:
         print(f"\n❌ 流程失败: {str(e)}")
         exit(1)

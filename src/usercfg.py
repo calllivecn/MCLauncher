@@ -10,7 +10,7 @@ import sys
 
 from logs import logger
 from initconfig import CONF, GAME_CONFIG
-from auth import MicrosoftAuthorized
+from auth2 import MicrosoftAuthorized
 from funcs import (
     get_uuid,
     DotDict,
