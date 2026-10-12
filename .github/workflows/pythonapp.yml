@@ -58,11 +58,11 @@ jobs:
     - name: 安装uv+启用虚拟环境
       run: |
         uv sync
-        ls -lh
+        dir
         echo "==================="
         uv run pyinstaller main.spec
         echo "==================="
-        ls -lh
+        dir
 
     - name: 保存 MCLaunhcer-${{ runner.os }}
       uses: actions/upload-artifact@v7
