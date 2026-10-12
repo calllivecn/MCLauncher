@@ -36,7 +36,8 @@ def check_username(username: str) -> tuple[bool, str]:
         # 比如中文字符、空格、减号、标点符号等
         if " " in username:
             return False, "用户名中不能包含空格"
-        return False, "用户名包含非法字符（只允许字母、数字和下划线）"
+        
+        return False, "用户名包含非法字符（只允许字母、数字和下划线, 长度在3~16字符。)"
 
 # ==================== 测试用例 ====================
 if __name__ == "__main__":

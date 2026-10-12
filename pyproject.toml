@@ -1,0 +1,31 @@
+[project]
+name = "MCLauncher"
+dynamic = ["version"]
+description = "python 写的 MC 启动器"
+readme = "README.md"
+authors = [
+    { name = "calllivecn", email = "calllivecn@outlook.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx[http2]>=0.28.1",
+]
+
+#[project.scripts]
+#mclauncher = "mclauncher:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]  # 仅需 setuptools 本身
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
+]
+
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic]
+version = {attr = "version.LAUNCHER_VERSION"}

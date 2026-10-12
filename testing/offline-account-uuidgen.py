@@ -21,4 +21,8 @@ def get_offline_uuid(player_name: str) -> str:
 
 
 if __name__ == "__main__":
-    print(get_offline_uuid("calllivecn"))
+    import sys
+    try:
+        print(get_offline_uuid(sys.argv[1]))
+    except Exception:
+        print(get_offline_uuid("calllivecn"))
