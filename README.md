@@ -56,11 +56,11 @@ CHANGELOG 2020-08-05：
 	2. 游戏资源检查+修补(--check-game)
 	3. 支持选择(--select-version)游戏版本启动, 默认启动本地最新版。
 
-### 使用注意事项：
+## 使用注意事项：
 
 - 有时候网络不好，下载失败，可以 CTRL+C 关闭安装。在次运行 --install-game 继续安装。
 
-### 游戏下载： 
+## 在release下载二进制文件 快速尝试
 
 - 大陆地区，下载游戏需要代理。。。
 
@@ -68,28 +68,46 @@ CHANGELOG 2020-08-05：
 	export http_proxy="http://127.0.0.1:9000"
 	export https_proxy="http://127.0.0.1:9000"
 
-	python3 MCLauncher.pyz --install-game 根据提示操作。
+	./MCLauncher --install-game 根据提示操作。
+
+	# 使用离线账号启动
+	./MCLahuncher --username vii
+
+	# 使用 微软账号启动 (这会打开你的默认浏览器，让你登录微软账号。)
+	./MCLahuncher --username vii --online
 ```
 
+## 使用uv 管理方式 快速尝试
 
-启动游戏：
+```shell
+git clone https://github.com/calllivecn/MCLauncher
+cd MCLauncher/
+uv sync
+uv run src/main.py --help
+```
+
+- 使用示例
+
 ```shell
 	# 首次启动(使用本地账号)
-	python3 MCLahuncher.pyz --username vii
+	./MCLahuncher --username vii
 
-	# 使用微软账号登录。 (这会打开你的默认浏览器，让你登录微软账号。登录后，需要复制url到这里，按回车继续。)
-	python3 MCLahuncher.pyz --online
+	# 使用微软账号登录。 (这会打开你的默认浏览器，让你登录微软账号。)
+	./MCLahuncher --online
 
 	# 之后启动
-	python3 MCLahuncher.pyz
+	./MCLahuncher
 
 	# 切换游戏版本
-	python3 MCLahuncher.pyz --select-version
+	./MCLahuncher --select-version
 
 	# 修改本地用户名
-	python3 MCLahuncher.pyz --username <名字>
+	./MCLahuncher --username <名字>
+
+	# 临时本地用户名(不保存用户信息,同时多启动游戏时使用。)
+	./MCLahuncher --username-tmp --username <名字>
 
 	# 切换微软用户名
-	python3 MCLahuncher.pyz --online --username <名字>
+	./MCLahuncher --online --username <名字>
 ```
 
