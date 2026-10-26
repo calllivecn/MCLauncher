@@ -20,7 +20,7 @@ dev = [
 #mclauncher = "mclauncher:main"
 
 [build-system]
-requires = ["setuptools>=61.0"]  # 仅需 setuptools 本身
+requires = ["setuptools>=84.1.0"]  # 仅需 setuptools 本身
 build-backend = "setuptools.build_meta"
 
 
